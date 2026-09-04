@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- overview: wide OPEN rounded frame + three small hollow dots (redo of rejected closed-frame
+       sheet cell; plan: plans/2026-08-31-command-icons-rationale.md, approvals.md 2026-08-31).
+       Filled-outline construction and 9px line weight match the approved sheet family.
+       Frame outer 307x176 centered (occupancy 0.60), right opening 53 (30% of height), rounded caps. -->
+  <path fill="#20211F" d="M 409.5 229.5 V 198 A 30 30 0 0 0 379.5 168 H 132.5 A 30 30 0 0 0 102.5 198 V 314 A 30 30 0 0 0 132.5 344 H 379.5 A 30 30 0 0 0 409.5 314 V 282.5 A 4.5 4.5 0 0 0 400.5 282.5 V 314 A 21 21 0 0 1 379.5 335 H 132.5 A 21 21 0 0 1 111.5 314 V 198 A 21 21 0 0 1 132.5 177 H 379.5 A 21 21 0 0 1 400.5 198 V 229.5 A 4.5 4.5 0 0 0 409.5 229.5 Z"/>
+  <path fill="#20211F" fill-rule="evenodd" d="M 193 256 A 17 17 0 1 0 159 256 A 17 17 0 1 0 193 256 Z M 184 256 A 8 8 0 1 1 168 256 A 8 8 0 1 1 184 256 Z"/>
+  <path fill="#20211F" fill-rule="evenodd" d="M 273 256 A 17 17 0 1 0 239 256 A 17 17 0 1 0 273 256 Z M 264 256 A 8 8 0 1 1 248 256 A 8 8 0 1 1 264 256 Z"/>
+  <path fill="#20211F" fill-rule="evenodd" d="M 353 256 A 17 17 0 1 0 319 256 A 17 17 0 1 0 353 256 Z M 344 256 A 8 8 0 1 1 328 256 A 8 8 0 1 1 344 256 Z"/>
+</svg>

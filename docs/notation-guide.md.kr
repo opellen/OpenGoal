@@ -1,0 +1,104 @@
+# opengoal 표기법 가이드
+
+opengoal 템플릿에서 사용하는 표기법이 왜 필요하고, 어떤 효과가 있는지 설명합니다.
+
+구문 레퍼런스는 [NOTATION.md](NOTATION.md)를 참고하세요.
+
+## 문제: 자연어만으로는 부족한 순간
+
+LLM에게 워크플로우를 지시할 때, 자연어는 대부분의 경우 잘 작동합니다.
+하지만 규칙이 복잡해지면 문제가 생깁니다:
+
+- **조건 분기가 모호해집니다** — "에러가 나면 재시도하되, 치명적이면 중단해" 같은 문장에서 LLM은 "치명적"의 기준을 다르게 해석할 수 있습니다.
+- **우선순위가 불명확합니다** — "항상 사용자 승인을 받아라"와 "사소한 수정은 바로 진행해라"가 같은 문서에 있으면 어느 쪽이 이길까요?
+- **반복 구조가 흐려집니다** — "각 파일에 대해 분석하고 테스트하고 보고해" 같은 지시에서 3단계가 모든 파일에 적용되는지, 아니면 한번만 실행되는지 모호합니다.
+
+## 접근: 마크다운 위의 경량 구조
+
+opengoal 표기법은 이 문제를 **5개 구문**으로 해결합니다.
+
+새로운 언어를 만든 게 아닙니다. 마크다운 위에 LLM이 이미 알고 있는 패턴을 얹은 것입니다:
+
+| 구문 | 하는 일 | 예시 |
+|------|---------|------|
+| `## Constraints` | 위반 불가 규칙 선언 | `- Never modify production DB directly` |
+| `(condition) => action` | 조건부 행동을 한 줄로 | `(error, retryable) => retry with backoff` |
+| Numbered list | 순차 절차 | `1. Read code. 2. Write tests.` |
+| `for each <unit>:` | 반복 프로세스 | `for each file: 1. Analyze. 2. Test.` |
+| `loop until <condition>:` | 재시도 의도 | `loop until approved: (rejected) => fix and resubmit` |
+
+처음 3개(Core)만 알면 충분합니다. `for each`와 `loop until`(Advanced)은 복잡한 워크플로우에서만 필요합니다.
+
+## 연구 배경
+
+이 표기법은 여러 연구와 실험에 기반합니다:
+
+### Pseudocode prompting 연구
+
+- **EMNLP 2023** — pseudocode 형식의 프롬프트가 자연어 대비 F1 스코어를 +7~16pt 향상시켰습니다.
+- **CodeAgents (2025)** — 에이전트 워크플로우를 pseudocode로 기술하면 토큰 사용량 55~87% 감소, 성능 +3~36pt 향상.
+
+하지만 이 연구들은 Python-like 코드를 사용했고, 프로덕션 도입 사례는 없었습니다.
+
+### opengoal의 위치
+
+opengoal은 양극단 사이의 실용적 지점을 선택했습니다:
+
+```
+순수 자연어 ←──── opengoal 표기법 ────→ Python-like pseudocode
+(모호성 위험)     (마크다운 + 구조)     (진입 장벽, 채택 실패)
+```
+
+- 자연어의 접근성을 유지하면서
+- pseudocode의 구조적 명확성을 취하되
+- 프로그래밍 문법은 배제
+
+### Constraints가 Steps보다 효과적인 이유
+
+LLM은 "이 순서대로 하라"보다 "이것은 절대 하지 마라"를 더 잘 지킵니다.
+
+이는 LLM의 학습 특성에 기인합니다 — 선언적 규칙(Constraints)은 문서 어디에 있든 참조되지만, 절차적 지시(Steps)는 위치와 순서에 의존합니다.
+
+opengoal이 `## Constraints`를 최우선으로 둔 이유입니다.
+
+## 실증 효과
+
+### A/B 테스트: 자연어 vs opengoal 표기법
+
+같은 과제를 자연어와 opengoal 표기법 두 버전으로 Qwen 2.5B에 제공한 결과:
+
+- **자연어 버전**: 문법 오류만 수정하고 사실 오류를 놓침
+- **표기법 버전**: 문법 오류와 사실 오류를 모두 감지하고 `[FACT CHECK]` 태그로 구분
+
+dispatch rule이 "행동 분리를 강제"한 효과입니다. 자연어에서는 여러 행동이 뒤섞이지만, `(condition) => action` 구문은 각 조건에 대한 행동을 명시적으로 분리합니다.
+
+### Constraints 우선순위 테스트
+
+"금요일에는 merge하지 않는다"(Constraint)와 "CI 통과 + 승인 2개면 merge"(Dispatch Rule)가 충돌하는 시나리오:
+
+- **2.5B 모델**: Constraint를 무시하고 merge 결정 (실패)
+- **9B 모델**: Constraint가 이김을 명시적으로 설명 (성공)
+
+opengoal의 타겟 모델(Claude Sonnet/Opus급)에서는 문제없이 작동합니다.
+
+### 기존 도구와의 호환성
+
+superpowers의 `subagent-driven-development` 스킬은 DOT 그래프(`digraph`)로 워크플로우를 표현합니다. opengoal 표기법으로 이를 100% 기능적으로 대체할 수 있음을 확인했습니다:
+
+| DOT 표현 | opengoal 표기법 |
+|---------|-------------|
+| diamond 노드 (분기) | `(condition) => action` |
+| cluster 서브그래프 (반복) | `for each task:` |
+| re-review 엣지 (루프) | `loop until approved:` |
+| Red Flags 섹션 | `## Constraints` |
+
+## 설계 논의
+
+이 표기법의 설계 과정은 4라운드에 걸친 연구, 검증, 실증 테스트를 거쳤습니다:
+
+- [Round 1](discussion/2026-04-05-notation-system-design-round-1.md) — 문제 정의, 후보 조사
+- [Round 2](discussion/2026-04-05-notation-system-design-round-2.md) — 기존 도구 팩트 체크
+- [Round 3](discussion/2026-04-05-notation-system-design-round-3.md) — 시안 작성, 다관점 검증
+- [Round 4](discussion/2026-04-05-notation-system-design-round-4.md) — 공식 사양 작성, LLM 실증 테스트
+
+전체 인덱스: [notation-system-design.md](discussion/2026-04-05-notation-system-design.md)

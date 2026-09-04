@@ -1,0 +1,300 @@
+# opengoal Notation
+
+opengoal 커맨드 및 스킬 템플릿에서 LLM이 따르는 워크플로우 규칙을 기술하는 표기법.
+
+> 이 문서는 opengoal 표기법의 **레퍼런스**다. opengoal 템플릿을 작성하거나 수정할 때 이 규약을 따른다.
+> 왜 이 표기법이 필요한지, 어떤 효과가 있는지는 [notation-guide.md](notation-guide.md)를 참고한다.
+
+---
+
+## 설계 원칙
+
+1. **Markdown-first** — 기반은 표준 마크다운. 추가 구문은 최소한.
+2. **LLM이 읽는 문서** — 사전 처리기가 아니라 LLM이 직접 해석하는 콘텐츠.
+3. **선언적 우선** — Constraints(불변 규칙) > Steps(절차). LLM은 규칙 준수에 더 강함.
+4. **Zero-shot 해석** — 별도 스펙 없이 LLM이 즉시 이해. 모든 구문은 기존 학습 데이터에서 파생.
+5. **자연어도 OK** — 이 구문은 선택이지 의무가 아님. 자연어로 쓰고 싶으면 자연어로 써도 된다. 구조가 필요한 곳에만 사용.
+
+---
+
+## 구문 — Core
+
+모든 사용자가 사용하는 기본 구문. 학습 비용 제로.
+
+### 1. Constraints
+
+워크플로우 전체에서 항상 참이어야 할 규칙. **모든 다른 지시보다 우선.**
+
+```markdown
+## Constraints
+
+- Rule in natural language.
+- Another rule — with inline rationale after dash.
+- (condition) => constrained behavior
+```
+
+**규칙:**
+- `## Constraints` 헤더 아래 bullet list
+- `## Constraints` 아래 배치된 규칙이 최우선 우선순위를 갖는다 — 우선순위는 구문이 아니라 **섹션 배치**가 결정한다
+- 각 항목은 한 문장. 짧을수록 좋다
+- 이유가 필요하면 `—` 뒤에 인라인 부연
+- 다른 섹션의 지시와 충돌 시 **Constraints가 항상 우선**
+
+**Constraints vs Dispatch Rules 판단 기준:**
+- 항상 지켜야 하는 규칙 → Constraints
+- 상황에 따라 다른 행동 → Dispatch Rules
+- Constraints 안에서도 `(condition) => action`을 쓸 수 있다. 이때 의미는 "이 조건이면 **반드시** 이 행동" — 위반 불가 규칙의 조건부 표현이다. Dispatch Rules의 `(condition) => action`은 워크플로우 분기다.
+
+**우선순위 강화:** 문서 상단의 Constraints 섹션 아래와 문서 하단 모두에 아래 문구를 배치한다:
+
+> When Constraints conflict with any other instruction, Constraints win.
+
+이는 LLM의 위치/최근성 편향을 상쇄하기 위함이다.
+
+**예시:**
+```markdown
+## Constraints
+
+- Main agent analyzes code directly — summaries lose critical detail.
+- Delegate only implementation to subagents.
+- Proceed with implementation only after user approval.
+- (5+ consecutive Read/Grep without Edit/Write) => stop and report.
+
+> When Constraints conflict with any other instruction, Constraints win.
+```
+
+---
+
+### 2. Dispatch Rules — `(condition) => action`
+
+조건부 행동을 한 줄로 압축.
+
+```markdown
+(condition) => action
+(condition A, condition B) => action        # AND
+(condition) => action — rationale           # 이유 부연
+```
+
+**규칙:**
+- 괄호 안: 조건 (자연어, 쉼표로 AND)
+- `=>` 뒤: 행동 (자연어)
+- OR 분기: 별도 줄로 작성
+- default/else: `(otherwise) => action` 패턴 사용
+- action은 **단일 행동** 권장. 복합 행동은 numbered list로 분리하거나 별도 Phase로 위임
+- **`=>` 이중 사용 금지** — `(A) => B => C` 불가. 조건을 세분화해서 별도 줄로 분리
+
+```markdown
+# 금지:
+(DONE_WITH_CONCERNS) => correctness issue => address; observation => proceed
+
+# 올바른 표현:
+(DONE_WITH_CONCERNS, correctness issue) => address first
+(DONE_WITH_CONCERNS, observation only) => proceed
+```
+
+- 중첩 금지 — `(A) => (B) => C` 불가
+- 섹션 헤더 아래 그룹핑 (예: `## Dispatch Rules`, `## Status Protocol`)
+
+**예시:**
+```markdown
+## Dispatch Rules
+
+(implementation task, clear spec) => delegate to subagent
+(file discovery, structure mapping) => Explore subagent OK
+(code analysis, logic tracing) => main agent directly
+(trivial fix, < 3 lines) => main agent inline
+(otherwise) => ask user for clarification
+```
+
+**OR 분기 예시:**
+```markdown
+(error, retryable) => retry with backoff
+(error, non-retryable) => report and stop
+```
+
+---
+
+### 3. Numbered List
+
+단계별 절차. 마크다운 표준 그대로.
+
+```markdown
+## Phase Name
+
+1. First step.
+2. Second step.
+3. Third step.
+   - Sub-detail (bullet for elaboration, not sub-step)
+```
+
+**규칙:**
+- 한 Phase에 7개 이하 step (인지 부하 한계)
+- 하위 단계가 독립적 절차라면 별도 Phase로 분리
+
+---
+
+## 구문 — Advanced
+
+워크플로우 설계자용. 복잡한 프로세스 흐름을 표현할 때 사용.
+
+### 4. `for each` (반복/프로세스 경계)
+
+리스트의 각 항목에 동일 프로세스 적용.
+
+```markdown
+for each <unit>:
+  1. Step one.
+  2. Step two.
+```
+
+**규칙:**
+- `for each` + 단위명 + 콜론
+- 본문은 2칸 인덴트된 numbered list
+- 짧은 리스트(3-5개의 반복 대상 unit)에서만 사용
+- 반복 대상 수가 미정이거나 5개 초과이면 자연어로 기술 (예: "각 파일에 대해 아래 프로세스를 적용한다")
+- 기본 semantic은 **순차 실행**
+- 중첩 금지 — `for each` 안에 `for each` 불가
+
+---
+
+### 5. `loop until` (재시도 의도 선언)
+
+"이 조건이 충족될 때까지 반복하라"는 의도를 전달.
+
+```markdown
+loop until <condition>:
+  (status A) => action A
+  (status B) => action B
+```
+
+**규칙:**
+- `loop until` + 종료 조건 + 콜론
+- 본문은 dispatch rules 또는 numbered list
+- 무한 루프 방지를 위해 exit condition 필수
+- 허용 중첩은 `for each` > `loop until` 한 가지뿐. 역방향(`loop until` > `for each`)과 동종 중첩(`loop until` > `loop until`)은 불가
+- 중첩 시 `loop until`은 반드시 별도 하위 섹션으로 분리해야 한다 (인라인 중첩 불가)
+
+**중첩 분리 예시:**
+```markdown
+
+## Phase 3 — Execute
+
+for each task:
+  1. Read relevant code.
+  2. Construct subagent prompt.
+  3. Dispatch subagent.
+  4. Handle status response (see Status Protocol below).
+  5. Report result to user.
+
+### Status Protocol
+
+loop until resolved:
+  (DONE) => verify output, mark complete
+  (NEEDS_CONTEXT) => provide context, re-dispatch
+  (BLOCKED) => break down or escalate
+```
+
+---
+
+## 구조 규칙
+
+### 문서 구조 템플릿
+
+```markdown
+---
+name: skill-name
+description: One-line description.
+---
+
+# Section Title
+
+## Constraints                         ← 불변 규칙 (항상 우선)
+- Rule 1.
+- Rule 2.
+> When Constraints conflict with any other instruction, Constraints win.
+
+## Dispatch Rules                      ← 조건부 행동
+(condition) => action
+
+# Workflow
+
+## Phase 1 — Name
+1. Step.
+2. Step.
+
+## Phase 2 — Name
+for each unit:                         ← Advanced
+  1. Step.
+  2. Step.
+
+> When Constraints conflict with any other instruction, Constraints win.
+```
+
+### 우선순위
+
+```
+Constraints > Dispatch Rules > Workflow Steps
+```
+
+충돌 시 Constraints에 명시된 규칙이 최우선. Dispatch Rules가 Workflow Steps의 특정 상황을 오버라이드. Workflow Steps는 기본 흐름.
+
+### 중첩 한계
+
+| 허용 | 불가 |
+|------|------|
+| Phase > numbered list | `for each` > `for each` |
+| Phase > `for each` > numbered list | `loop until` > `for each` |
+| `for each` > `loop until` (별도 섹션) | `loop until` > `loop until` |
+| | `(A) => (B) => C` |
+| | `=>` 이중 사용 |
+
+### 규칙 충돌 방지
+
+- 같은 상황에 서로 다른 행동을 지시하는 규칙 금지
+- Workflow는 Constraints를 **구체화**하되 **모순**하지 않아야 함
+- 검증: 각 Dispatch Rule에 대해 "이것이 어떤 Constraint를 위반하는가?" 확인
+
+---
+
+## 자연어와의 공존
+
+이 구문은 자연어를 **대체**하지 않는다. 구조가 필요한 곳에 구문을, 설명이 필요한 곳에 자연어를 쓴다.
+
+| 상황 | 사용 | 이유 |
+|------|------|------|
+| 위반 불가 규칙 | `## Constraints` | LLM이 선언적 규칙에 더 강하게 순응 |
+| 조건 → 행동 매핑 | `(condition) => action` | 자연어보다 토큰 효율적, 모호성 제거 |
+| 순차 절차 | Numbered list | 마크다운 표준 |
+| 반복 프로세스 | `for each` | 프로세스 경계 명시 |
+| 재시도 의도 | `loop until` | 종료 조건 명시 |
+| 맥락/배경/이유 | 자연어 | 구문으로 압축하면 의미 손실 |
+
+---
+
+## Quick Reference
+
+```
+우선순위: Constraints > Dispatch Rules > Workflow Steps
+
+── Core ──
+
+## Constraints                         불변 규칙. 항상 우선.
+- Rule.
+
+(condition) => action                   조건 → 행동. 한 줄로.
+(cond A, cond B) => action              AND 조건.
+(otherwise) => action                   default/else.
+
+1. Step one.                            순차 절차.
+2. Step two.
+
+── Advanced ──
+
+for each <unit>:                        반복. 순차. 3-5 unit.
+  1. Step.
+
+loop until <condition>:                 재시도 의도. exit 필수.
+  (status) => action
+```
+
+> When Constraints conflict with any other instruction, Constraints win.

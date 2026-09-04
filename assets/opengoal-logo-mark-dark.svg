@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Dark-mode variant (guide s14/s43): warm-white frame, dark goal orange, transparent bg -->
+  <path d="M 406 211 V 158 A 52 52 0 0 0 354 106 H 158 A 52 52 0 0 0 106 158 V 354 A 52 52 0 0 0 158 406 H 354 A 52 52 0 0 0 406 354 V 301"
+        fill="none" stroke="#F3F1EB" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="250" cy="256" r="26" fill="#FF6848"/>
+</svg>

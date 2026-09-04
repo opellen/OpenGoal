@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Open frame: 300x300, radius 52 (17.3%), stroke 14 (4.67%), right opening 90 (30%) -->
+  <path d="M 406 211 V 158 A 52 52 0 0 0 354 106 H 158 A 52 52 0 0 0 106 158 V 354 A 52 52 0 0 0 158 406 H 354 A 52 52 0 0 0 406 354 V 301"
+        fill="none" stroke="#20211F" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Current goal: r 26 (17.3% diameter), 2% left optical bias -->
+  <circle cx="250" cy="256" r="26" fill="#F45A3A"/>
+</svg>
