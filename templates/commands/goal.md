@@ -63,8 +63,10 @@ Creates `$DocsDir/GOAL.md`.
 5. Assess task granularity:
    - (tasks are complex, embed multiple implicit steps) => recommend `/$CommandPrefix:goal breakdown` with 1-line rationale
    - (tasks are specific and actionable) => recommend `/$CommandPrefix:design init` (implementation task) or `/$CommandPrefix:go` (analysis task) with 1-line rationale
-6. If the goal was created from a `$DocsDir/BACKLOG.md` item, remove that item from BACKLOG.md (promotion = deletion).
+6. If the goal was created from a `$DocsDir/BACKLOG.md` item, remove that item from BACKLOG.md (promotion = deletion). If the item referenced a file under `$DocsDir/backlog/open/`, move it to `$DocsDir/backlog/archive/`.
 7. Report: `"Created [GOAL.md]($DocsDir/GOAL.md)."`
+   - (promoted from a backlog item without a detail file) => append `" Promoted from backlog: removed item from [$DocsDir/BACKLOG.md]($DocsDir/BACKLOG.md)."`
+   - (promoted from a backlog item with a detail file) => append `" Promoted from backlog: removed item from [$DocsDir/BACKLOG.md]($DocsDir/BACKLOG.md), moved detail file to [$DocsDir/backlog/archive/]($DocsDir/backlog/archive/)."`
 
 GOAL.md format:
 ```yaml
@@ -339,7 +341,7 @@ Both `parent:` checks read the front-matter of each `$DocsDir/suspended/*/GOAL.m
    - (any file was held back by step 3's collision rule or step 4's mismatch guard) => append `" Not moved: <files> — left in place for triage."`
    - (peer goals remain under `$DocsDir/suspended/`) => close with `" Resume a parked goal with /$CommandPrefix:goal resume."`
    - (no peer goals remain) => close with `" Set a new goal with /$CommandPrefix:goal init."`
-7. If `$DocsDir/BACKLOG.md` has open items, suggest promoting one as the next goal.
+7. If `$DocsDir/BACKLOG.md` has items resolved during this goal or carrying completion/dropped notes, sweep them following `opengoal-flow`'s `Backlog Disposal` section without exception, and report the sweep actions taken (e.g. `"Swept [$DocsDir/BACKLOG.md]($DocsDir/BACKLOG.md): <N> resolved item(s) deleted, <M> dropped item(s) indexed to [$DocsDir/backlog/archive/DROPPED.md]($DocsDir/backlog/archive/DROPPED.md)."`). Then, if open items remain, suggest promoting one as the next goal.
 
 ### archive (sub-goal completion)
 

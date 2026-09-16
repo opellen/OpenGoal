@@ -86,7 +86,8 @@ docs/
 ├── DESIGN.md        ← Implementation design (as needed)
 ├── PLAN.md          ← Implementation plan (auto-generated for complex tasks)
 ├── ROADMAP.md       ← Milestone-based overall plan
-├── BACKLOG.md       ← Deferred out-of-scope discoveries
+├── BACKLOG.md       ← Priority queue for out-of-scope discoveries (max 3 lines)
+├── backlog/          ← Detailed findings (open/) and dropped archive (archive/)
 ├── OVERVIEW.md      ← Full project overview (as needed)
 └── suspended/       ← Suspended goals and parked sub-goals
 ```
@@ -99,7 +100,8 @@ docs/
 | `DESIGN.md` | How do I implement this? | Until goal is achieved |
 | `PLAN.md` | How do I implement this task? | Auto-generated → auto-archived |
 | `ROADMAP.md` | Where am I in the big picture? | Project lifetime |
-| `BACKLOG.md` | What did I discover but defer? | Project lifetime |
+| `BACKLOG.md` | What did I discover but defer? | Swept on goal archive |
+| `backlog/` | What are the detailed findings and dropped records? | Persistent / archived |
 | `OVERVIEW.md` | What does this whole project look like? | Project lifetime |
 
 Start with just `GOAL.md` and expand to `ROADMAP.md`, or lay out the big picture in `ROADMAP.md` and drill down to `GOAL.md`. Either way, OpenGoal keeps "what to do now" visible on markdown.

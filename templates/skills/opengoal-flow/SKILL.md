@@ -130,9 +130,19 @@ A bare "pause" now has three readings: stop working (the `/$CommandPrefix:go` lo
 
 When a discovery falls outside the current goal's scope but does not block it (unrelated bug, improvement idea, tech debt):
 
-- (out-of-scope discovery, current GOAL can still progress) => offer to append a one-line entry to `$DocsDir/BACKLOG.md`, then continue the current task
-- (diagnosis is substantial) => record it in `$DocsDir/logs/` or `discussion/`; the backlog entry keeps only the one-liner + a pointer
-- Entry format: `- [ ] YYYY-MM-DD <one-liner> (found during <goal-id>)`
+- **Pre-check**: Before appending, check `$DocsDir/backlog/archive/DROPPED.md` (via fast search). State the pre-check result in one line (e.g. `"Checked DROPPED.md: no prior determination"`). If already recorded as dropped, do not re-add unless new counter-evidence invalidates the previous decision.
+- (out-of-scope discovery, fits in 3 lines) => offer to append a concise entry to `$DocsDir/BACKLOG.md` (max 3 lines), then continue the current task:
+  - Format: `- [ ] YYYY-MM-DD <one-liner> (found during <goal-id>)`
+- (diagnosis/context exceeds 3 lines) => write details to `$DocsDir/backlog/open/YYYY-MM-DD-<slug>.md` (escape hatch); the backlog entry keeps only the one-liner + link to that file.
+
+### Backlog Disposal (Sweep)
+
+`$DocsDir/BACKLOG.md` is a priority queue, not an audit log. Completed or dropped entries must not accumulate inline reports:
+
+- **Resolved by Goal (promoted or incidental)**: Delete from `$DocsDir/BACKLOG.md`. Implementation history lives in the goal archive. If the item referenced a file under `$DocsDir/backlog/open/`, move it to `$DocsDir/backlog/archive/`. If unreflected lessons/guidelines exist in notes, migrate them to permanent docs before deleting.
+- **Partial completion**: Confirm uncompleted parts are re-homed into a new item or document before deleting the original.
+- **Dropped / Won't-fix**: Delete from `$DocsDir/BACKLOG.md` and append a one-line entry to `$DocsDir/backlog/archive/DROPPED.md` with pointer (`- YYYY-MM-DD <topic>: <rationale> -> <audit/commit/archive pointer>`). If a detailed file exists in `$DocsDir/backlog/open/`, move it to `$DocsDir/backlog/archive/`.
+- (stale dropped premise) => purge from `$DocsDir/backlog/archive/DROPPED.md` when the underlying architectural premise is obsolete.
 
 Blocking discoveries belong to Blocker Handling (suspend); non-blocking ones split between Sub-goal Handling and here — run them through that section's discriminant, never default them into the backlog.
 

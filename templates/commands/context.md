@@ -64,7 +64,7 @@ Creates `$DocsDir/CONTEXT.md`.
 - Tasks live in `$DocsDir/GOAL.md` `## Tasks`. Front-matter requires an `id` (slug format).
 - Implementation happens in `$CodebaseDir`.
 - Session progress: `/$CommandPrefix:goal checkpoint` → `$DocsDir/CHECKPOINT.md` (overwritten per session).
-- Deferred discoveries: out-of-scope findings go to `$DocsDir/BACKLOG.md` (persistent parking lot).
+- Deferred discoveries: out-of-scope findings go to `$DocsDir/BACKLOG.md` (priority queue, max 3 lines per entry, swept on goal archive; details in `$DocsDir/backlog/open/`).
 - Work larger than a task, subordinate to the current goal, needed now, and not blocking it: `/$CommandPrefix:goal subgoal init` (the parent resumes automatically on completion; a *blocking* discovery is a blocker, not a sub-goal).
 ```
 

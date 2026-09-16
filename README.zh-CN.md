@@ -89,7 +89,8 @@ docs/
 ├── DESIGN.md        ← 实现设计（按需）
 ├── PLAN.md          ← 实现计划（复杂任务时自动生成）
 ├── ROADMAP.md       ← 以里程碑组织的整体计划
-├── BACKLOG.md       ← 暂缓处理的范围外发现
+├── BACKLOG.md       ← 优先级队列（最多3行，目标归档时整理）
+├── backlog/          ← 详细发现（open/）与已放弃/归档记录（archive/）
 ├── OVERVIEW.md      ← 项目全貌总览（按需）
 └── suspended/       ← 被中止的目标与暂存的子目标
 ```
@@ -102,7 +103,8 @@ docs/
 | `DESIGN.md` | 这个要怎么实现？ | 直到目标达成 |
 | `PLAN.md` | 这个任务要怎么实现？ | 自动生成 → 自动归档 |
 | `ROADMAP.md` | 我在大局中处于哪个位置？ | 项目全程 |
-| `BACKLOG.md` | 我发现了什么，但先放一放？ | 项目全程 |
+| `BACKLOG.md` | 我发现了什么，但先放一放？ | 目标归档时整理 |
+| `backlog/` | 详细分析与已放弃的记录在哪？ | 长期保留 / 归档 |
 | `OVERVIEW.md` | 整个项目大致是什么样子？ | 项目全程 |
 
 可以只从 `GOAL.md` 开始，再逐步扩展到 `ROADMAP.md`；也可以先在 `ROADMAP.md` 里画出

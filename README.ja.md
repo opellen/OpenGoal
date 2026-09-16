@@ -83,7 +83,8 @@ docs/
 ├── DESIGN.md        ← Implementation design (as needed)
 ├── PLAN.md          ← Implementation plan (auto-generated for complex tasks)
 ├── ROADMAP.md       ← Milestone-based overall plan
-├── BACKLOG.md       ← Deferred out-of-scope discoveries
+├── BACKLOG.md       ← 優先度キュー (最大3行、ゴールアーカイブ時に整理)
+├── backlog/          ← 詳細な発見事項(open/)およびドロップ/アーカイブ履歴(archive/)
 ├── OVERVIEW.md      ← Full project overview (as needed)
 └── suspended/       ← Suspended goals and parked sub-goals
 ```
@@ -96,7 +97,8 @@ docs/
 | `DESIGN.md` | どう実装するか? | ゴール達成まで |
 | `PLAN.md` | このタスクをどう実装するか? | 自動生成 → 自動アーカイブ |
 | `ROADMAP.md` | 全体の中で今どこにいるか? | プロジェクトの存続期間 |
-| `BACKLOG.md` | 発見したが後回しにしたことは何か? | プロジェクトの存続期間 |
+| `BACKLOG.md` | 発見したが後回しにしたことは何か? | ゴールアーカイブ時に整理 |
+| `backlog/` | 詳細な分析とドロップ履歴はどこにあるか? | 恒久保存 / アーカイブ |
 | `OVERVIEW.md` | プロジェクト全体はどんな姿か? | プロジェクトの存続期間 |
 
 `GOAL.md`だけから始めて`ROADMAP.md`へ広げていくのでも、`ROADMAP.md`で全体像を描いてから`GOAL.md`へ落とし込んでいくのでも構いません。どちらの進め方でも、OpenGoalは「今何をすべきか」をMarkdown上に見える状態に保ちます。

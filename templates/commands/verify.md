@@ -11,6 +11,7 @@ Cross-checks the current implementation state against GOAL.md and DESIGN.md to s
 
 ## Constraints
 
+- (command entry, and again on the first turn after a compaction) => load the `opengoal-flow` skill BEFORE reporting verification results, and say so in one line. A reference is not a load: its rules (backlog handling and disposal, self-verification, checkpoint triggers) only bind once the skill's content is actually in context.
 <!-- @if subagent -->
 - **Delegate** evidence gathering (e.g., reading files, running checks) to **subagents** — verification synthesis stays with main. Direct work is limited to one-line fixes, except where `opengoal-subagent` designates work main-only (iterative collaboration, 2nd-iteration rework, evolving design).
 - Report subagent results to the user.
