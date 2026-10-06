@@ -17,7 +17,7 @@ OpenGoal installs markdown commands into each tool's native format. The content 
 | Cursor | Adapter ready | `.cursor/commands/` |
 | Windsurf | Adapter ready | `.windsurf/workflows/` |
 | Cline | Adapter ready | `.clinerules/workflows/` |
-| Codex | Adapter ready | `.codex/skills/` |
+| Codex | Verified | `.codex/skills/` |
 | GitHub Copilot | Adapter ready | `.github/prompts/` |
 | Continue | Adapter ready | `.continue/prompts/` |
 | Amazon Q Developer | Adapter ready | `.amazonq/prompts/` |

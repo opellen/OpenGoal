@@ -39,6 +39,24 @@ export interface TemplateEntry {
   adapter: PlatformAdapter;
   meta: CommandMeta;
   rawContent: string;
+  /** Companion file produced by the adapter; rawContent is final, no rendering. */
+  generated?: boolean;
+}
+
+function companionEntries(
+  adapter: PlatformAdapter,
+  target: Parameters<NonNullable<PlatformAdapter["companionFiles"]>>[0],
+  meta: CommandMeta,
+): TemplateEntry[] {
+  if (!adapter.companionFiles) return [];
+  return adapter.companionFiles(target).map((file) => ({
+    src: `generated/${target.kind}/${target.name}`,
+    dst: file.dst,
+    adapter,
+    meta,
+    rawContent: file.content,
+    generated: true,
+  }));
 }
 
 const COMMAND_TEMPLATES = [
@@ -92,17 +110,26 @@ export function resolveTemplates(config: OpenGoalConfig): TemplateEntry[] {
   for (const adapter of adapters) {
     if (adapter.supportsCommands !== false) {
       for (const { cmd, src, rawContent, meta } of commandMetas) {
-        entries.push({ src, dst: adapter.commandPath(cmd, config.prefix), adapter, meta, rawContent });
+        const dst = adapter.commandPath(cmd, config.prefix);
+        entries.push({ src, dst, adapter, meta, rawContent });
+        entries.push(...companionEntries(
+          adapter,
+          { kind: "command", name: cmd, description: meta.description, dst, prefix: config.prefix },
+          meta,
+        ));
       }
     }
     for (const skill of skillContents) {
-      entries.push({
-        src: skill.src,
-        dst: skillInstallPath(adapter, skill.skillName),
+      const dst = skillInstallPath(adapter, skill.skillName);
+      const description =
+        skill.rawContent.replace(/\r\n/g, "\n").match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? "";
+      const meta = { name: skill.skillName, description };
+      entries.push({ src: skill.src, dst, adapter, meta, rawContent: skill.rawContent });
+      entries.push(...companionEntries(
         adapter,
-        meta: { name: skill.skillName, description: "" },
-        rawContent: skill.rawContent,
-      });
+        { kind: "skill", name: skill.skillName, description, dst, prefix: config.prefix },
+        meta,
+      ));
     }
   }
 
@@ -110,6 +137,8 @@ export function resolveTemplates(config: OpenGoalConfig): TemplateEntry[] {
 }
 
 export function renderFile(entry: TemplateEntry, config: OpenGoalConfig): string {
+  if (entry.generated) return entry.rawContent;
+
   const content = entry.rawContent.replace(/\r\n/g, "\n");
 
   const rendered = renderTemplate(content, {
@@ -118,10 +147,16 @@ export function renderFile(entry: TemplateEntry, config: OpenGoalConfig): string
     },
   });
 
+  const commandRef =
+    entry.adapter.commandRef ?? ((name: string, prefix: string) => `/${prefix}:${name}`);
+
   const substituted = rendered
     .replace(/\$DocsDir/g, config.docsDir)
     .replace(/\$CodebaseDir/g, config.codebaseDir)
     .replace(/\$OpenGoalVersion/g, OPENGOAL_VERSION)
+    .replace(/\/\$CommandPrefix:([a-z-]+)/g, (_match, name: string) =>
+      commandRef(name, config.prefix),
+    )
     .replace(/\$CommandPrefix/g, config.prefix);
 
   if (entry.src.startsWith("skills/")) {

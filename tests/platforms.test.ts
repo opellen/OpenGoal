@@ -107,6 +107,36 @@ describe("platforms", () => {
     it("formatCommand preserves content", () => {
       expect(adapter.formatCommand(sampleContent, meta, TEST_PREFIX)).toBe(sampleContent);
     });
+    it("companionFiles writes a display manifest beside a command skill", () => {
+      const files = adapter.companionFiles!({
+        kind: "command",
+        name: "scout",
+        description: meta.description,
+        dst: adapter.commandPath("scout", TEST_PREFIX),
+        prefix: TEST_PREFIX,
+      });
+      expect(files).toEqual([
+        {
+          dst: ".codex/skills/tpfx-scout/agents/openai.yaml",
+          content:
+            'interface:\n  display_name: "OpenGoal: Scout"\n  short_description: "Project scout (project-name)"\n',
+        },
+      ]);
+    });
+    it("commandRef uses the picker label", () => {
+      expect(adapter.commandRef!("go", TEST_PREFIX)).toBe("OpenGoal: Go");
+    });
+    it("companionFiles labels shared skills with the brand name", () => {
+      const files = adapter.companionFiles!({
+        kind: "skill",
+        name: "opengoal-flow",
+        description: "Main-agent flow principles",
+        dst: ".codex/skills/opengoal-flow/SKILL.md",
+        prefix: TEST_PREFIX,
+      });
+      expect(files[0].dst).toBe(".codex/skills/opengoal-flow/agents/openai.yaml");
+      expect(files[0].content).toContain('display_name: "OpenGoal Flow"');
+    });
   });
 
   describe("github-copilot adapter", () => {

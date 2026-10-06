@@ -1,6 +1,6 @@
 {
   "name": "@opellen/opengoal",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Goal-centric AI harness. Plain markdown, zero runtime — nothing runs but your agent.",
   "type": "module",
   "license": "MIT",
