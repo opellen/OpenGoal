@@ -336,11 +336,13 @@ That range is the point.
 
 **Long-horizon builds**
 
+- [Ordo](https://github.com/opellen/Ordo) — a typed-event application framework for C++20. An event is a
+  plain struct: the type is the identity, the fields are the payload. OrdoStateDesigner and Planura are built on it.
+- [OrdoStateDesigner](https://github.com/opellen/OrdoStateDesigner) — a statechart designer built on Ordo
+  (C++20 / Qt 6): draw a state machine on a canvas, simulate it live, and generate the C++ that runs it.
 - [Planura](https://github.com/opellen/Planura) — a native direct-modeling 3D application
   (C++20 / Qt 6 / OpenGL): half-edge geometry kernel, CSG solid modeling, inference-driven
-  drawing, on [Ordo](https://github.com/opellen/Ordo), its purpose-built application framework.
-- [Ordo](https://github.com/opellen/Ordo) — a typed-event application framework for C++20, extracted from
-  Planura. An event is a plain struct: the type is the identity, the fields are the payload.
+  drawing, on Ordo, which was extracted from it.
 - Reverse-engineering campaigns — the domain OpenGoal was designed in, where the goal is
   large, the path is unknown, and progress depends on splitting it finely.
 
@@ -348,8 +350,6 @@ That range is the point.
 
 - [SeedNote](https://github.com/opellen/Seed-Note) — a structured block editor for Android (Kotlin / Jetpack Compose)
 - [ScreenUse](https://github.com/opellen/Screen-Use) — a scenario-driven UI replay and verification tool that drives a real app and records it
-- [OpenIllust](https://github.com/opellen/OpenIllust) — campaign-driven AI vector asset production for Claude Code and
-  Codex; the logo set in this repository was produced with it
 
 **Focused tools**
 

@@ -330,15 +330,15 @@ AI:  ✓ サブゴールをアーカイブしました。Goal Aに戻ります �
 
 **長期にわたるビルド**
 
-- [Planura](https://github.com/opellen/Planura) — ネイティブなダイレクトモデリング3Dアプリケーション(C++20 / Qt 6 / OpenGL): half-edgeジオメトリカーネル、CSGソリッドモデリング、推論駆動の描画を、専用フレームワーク [Ordo](https://github.com/opellen/Ordo) の上に実装。
-- [Ordo](https://github.com/opellen/Ordo) — Planura から切り出された C++20 の型付きイベント・アプリケーションフレームワークです。イベントはただの構造体で、型がアイデンティティ、フィールドがペイロードです。
+- [Ordo](https://github.com/opellen/Ordo) — C++20 の型付きイベント・アプリケーションフレームワークです。イベントはただの構造体で、型がアイデンティティ、フィールドがペイロードです。OrdoStateDesigner と Planura はこの上に構築されています。
+- [OrdoStateDesigner](https://github.com/opellen/OrdoStateDesigner) — Ordo の上に構築したステートチャート・デザイナー(C++20 / Qt 6)です。キャンバスに状態機械を描き、その場でシミュレートし、それを動かす C++ を生成します。
+- [Planura](https://github.com/opellen/Planura) — ネイティブなダイレクトモデリング3Dアプリケーション(C++20 / Qt 6 / OpenGL): half-edgeジオメトリカーネル、CSGソリッドモデリング、推論駆動の描画を Ordo の上に実装。Ordo はこのプロジェクトから切り出されたものです。
 - リバースエンジニアリングのキャンペーン — OpenGoalが設計された本来の領域であり、ゴールは大きく、道筋は不明で、進捗が細かく分割できるかどうかにかかっています。
 
 **アプリケーションとツール**
 
 - [SeedNote](https://github.com/opellen/Seed-Note) — Android向けの構造化ブロックエディタ(Kotlin / Jetpack Compose)
 - [ScreenUse](https://github.com/opellen/Screen-Use) — 実際のアプリを操作・記録する、シナリオ駆動のUIリプレイ&検証ツール
-- [OpenIllust](https://github.com/opellen/OpenIllust) — Claude Code と Codex のためのキャンペーン駆動型 AI ベクター素材制作ツールです。このリポジトリのロゴ一式も OpenIllust で制作しました。
 
 **特化ツール**
 

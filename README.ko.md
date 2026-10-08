@@ -328,11 +328,13 @@ AI:  ✓ 서브골 아카이브 완료. Goal A로 복귀 — 포인터 태스크
 
 **긴 호흡의 개발**
 
+- [Ordo](https://github.com/opellen/Ordo) — C++20용 타입 이벤트 애플리케이션 프레임워크입니다.
+  이벤트는 평범한 구조체이며, 타입이 곧 정체성이고 필드가 곧 페이로드입니다. OrdoStateDesigner와 Planura가 이 위에서 만들어졌습니다.
+- [OrdoStateDesigner](https://github.com/opellen/OrdoStateDesigner) — Ordo 기반의 상태차트 디자이너입니다
+  (C++20 / Qt 6). 캔버스에 상태 머신을 그리고, 실시간으로 시뮬레이션하고, 그것을 실행하는 C++ 코드를 생성합니다.
 - [Planura](https://github.com/opellen/Planura) — 네이티브 다이렉트 모델링 3D 애플리케이션
   (C++20 / Qt 6 / OpenGL). half-edge 지오메트리 커널, CSG 솔리드 모델링, 추론 기반 드로잉을
-  자체 프레임워크인 [Ordo](https://github.com/opellen/Ordo) 기반으로 구현했습니다.
-- [Ordo](https://github.com/opellen/Ordo) — Planura에서 추출된 C++20용 타입 이벤트 애플리케이션 프레임워크입니다.
-  이벤트는 평범한 구조체이며, 타입이 곧 정체성이고 필드가 곧 페이로드입니다.
+  Ordo 기반으로 구현했고, Ordo는 이 프로젝트에서 추출됐습니다.
 - 리버스엔지니어링 캠페인 — OpenGoal이 처음 고안된 도메인입니다. 목표는 거대하고 길은
   보이지 않아서, 목표를 잘게 쪼갤 수 있을 때에만 전진할 수 있는 영역입니다.
 
@@ -340,8 +342,6 @@ AI:  ✓ 서브골 아카이브 완료. Goal A로 복귀 — 포인터 태스크
 
 - [SeedNote](https://github.com/opellen/Seed-Note) — Android용 구조화 블록 에디터 (Kotlin / Jetpack Compose)
 - [ScreenUse](https://github.com/opellen/Screen-Use) — 시나리오 기반 UI 재생 및 검증 도구 (실제 앱을 구동해 녹화)
-- [OpenIllust](https://github.com/opellen/OpenIllust) — Claude Code와 Codex를 위한 캠페인 기반 AI 벡터 에셋 제작
-  도구입니다. 이 저장소의 로고 세트도 OpenIllust로 제작했습니다.
 
 **집중형 도구**
 

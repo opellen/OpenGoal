@@ -351,11 +351,13 @@ AI:  ✓ sub-goal 已归档。回到目标 A —— 对应的指针任务已勾�
 
 **长周期开发**
 
+- [Ordo](https://github.com/opellen/Ordo) — C++20 类型化事件应用框架。
+  事件就是一个普通的结构体：类型即身份，字段即载荷。OrdoStateDesigner 和 Planura 都构建在它之上。
+- [OrdoStateDesigner](https://github.com/opellen/OrdoStateDesigner) — 构建在 Ordo 之上的状态图设计器
+  （C++20 / Qt 6）：在画布上绘制状态机，实时模拟，并生成运行它的 C++ 代码。
 - [Planura](https://github.com/opellen/Planura) — 一款原生的直接建模 3D 应用
   （C++20 / Qt 6 / OpenGL）：半边（half-edge）几何内核、CSG 实体建模、推理驱动的
-  绘图，构建在自研框架 [Ordo](https://github.com/opellen/Ordo) 之上。
-- [Ordo](https://github.com/opellen/Ordo) — 从 Planura 中提取出来的 C++20 类型化事件应用框架。
-  事件就是一个普通的结构体：类型即身份，字段即载荷。
+  绘图，构建在 Ordo 之上；Ordo 正是从这个项目中提取出来的。
 - 逆向工程项目 — OpenGoal 最初就是为这类场景设计的：目标庞大、路径未知，
   进展全靠把任务拆得足够细。
 
@@ -363,8 +365,6 @@ AI:  ✓ sub-goal 已归档。回到目标 A —— 对应的指针任务已勾�
 
 - [SeedNote](https://github.com/opellen/Seed-Note) — 一款面向 Android 的结构化块编辑器（Kotlin / Jetpack Compose）
 - [ScreenUse](https://github.com/opellen/Screen-Use) — 一款场景驱动的 UI 回放与验证工具，能驱动真实应用并录制过程
-- [OpenIllust](https://github.com/opellen/OpenIllust) — 面向 Claude Code 与 Codex 的、以 campaign 为单位的 AI
-  矢量素材生产工具。本仓库的 logo 套件正是用它制作的。
 
 **专注型工具**
 
