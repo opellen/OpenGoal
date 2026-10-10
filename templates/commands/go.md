@@ -9,11 +9,14 @@ tags: [workflow, opengoal, go]
 
 ## Constraints
 
-- (command entry, and again on the first turn after a compaction) => load the `opengoal-flow` skill BEFORE executing the first task, and say so in one line. A reference is not a load: its rules (checkpoint triggers, documentation timing, CONTEXT.md self-sync, self-verification) only bind once the skill's content is actually in context.
+- (command entry, `opengoal-flow`'s own text not visible in your current context) => load the `opengoal-flow` skill BEFORE executing the first task, and say so in one line — its rules (checkpoint triggers, documentation timing, CONTEXT.md self-sync, self-verification) bind only while that text is in context.
+- (command entry, `opengoal-flow`'s own text visible) => do not re-read it.
+- Visible means the skill's text itself, as read or injected — remembering its rules, or a summary that mentions them, is not visible.
 <!-- @if subagent -->
 - **Delegate** implementation tasks to **subagents** — direct work is limited to one-line fixes, except where `opengoal-subagent` designates work main-only (iterative collaboration, 2nd-iteration rework, evolving design).
 - Report subagent results to the user after each task completes — a report, not a request for permission; continue to the next task in the same turn.
-- (first subagent dispatch of the session, or first dispatch after a compaction) => load the `opengoal-subagent` skill BEFORE dispatching and say so in one line (e.g. "opengoal-subagent loaded — dispatching <task> → <model> (<rationale>)"). A dispatch without this load+announcement is a violation: the skill's dispatch rules (model selection/reporting, prompt requirements, post-verify) only bind once its content is actually in context.
+- (subagent dispatch, `opengoal-subagent`'s own text not visible in your current context) => load the `opengoal-subagent` skill BEFORE dispatching and say so in one line (e.g. "opengoal-subagent loaded — dispatching <task> → <model> (<rationale>)") — a dispatch without this load and announcement is a violation, because its dispatch rules (model selection/reporting, prompt requirements, post-verify) bind only while that text is in context.
+- (subagent dispatch, `opengoal-subagent`'s own text visible) => do not re-read it.
 <!-- @else -->
 - Perform implementation tasks directly.
 - Report results to the user after each task completes — a report, not a request for permission; continue to the next task in the same turn.
@@ -23,7 +26,7 @@ tags: [workflow, opengoal, go]
 
 ## Execution
 
-1. If GOAL.md and CONTEXT.md were already read in this session, skip to step 3 — but not if the goal occupying the canonical paths has changed since the last read: a `subgoal` verb, `goal suspend`/`resume`, or `goal archive`'s sub-goal completion all swap the documents at those paths.
+1. If the text of GOAL.md and CONTEXT.md is visible in your current context, skip to step 3 — but not if the goal occupying the canonical paths has changed since the last read: a `subgoal` verb, `goal suspend`/`resume`, or `goal archive`'s sub-goal completion all swap the documents at those paths.
 2. Read `$DocsDir/GOAL.md`, `$DocsDir/CONTEXT.md`, `$DocsDir/DESIGN.md`, `$DocsDir/PLAN.md`, and `$DocsDir/CHECKPOINT.md` at once (parallel if supported, sequential otherwise). A file read error means the file does not exist — **do NOT retry failed reads.**
    - If GOAL.md is absent: "No goal set. Run `/$CommandPrefix:goal init` first, or tell me what to work on."
    - (CHECKPOINT.md exists, its front-matter `goal-id` matches GOAL.md's `id`) => use its Findings and Next Steps as resume context for the next task — it records where the last session stopped and why

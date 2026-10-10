@@ -13,7 +13,9 @@ Wraps up the current session by syncing important decisions and findings into th
 
 ## Constraints
 
-- (command entry, and again on the first turn after a compaction) => load the `opengoal-flow` skill BEFORE writing to any document, and say so in one line. A reference is not a load: its rules (the blocker / sub-goal / backlog discriminant that decides where a scanned finding belongs, self-verification before marking anything done) only bind once the skill's content is actually in context.
+- (command entry, `opengoal-flow`'s own text not visible in your current context) => load the `opengoal-flow` skill BEFORE writing to any document, and say so in one line — its rules (the blocker / sub-goal / backlog discriminant that decides where a scanned finding belongs, self-verification before marking anything done) bind only while that text is in context.
+- (command entry, `opengoal-flow`'s own text visible) => do not re-read it.
+- Visible means the skill's text itself, as read or injected — remembering its rules, or a summary that mentions them, is not visible.
 - Living documents only — recap updates CONTEXT.md, DESIGN.md, OVERVIEW.md, GOAL.md. Never create new archival files.
 - No duplication — if a change is already reflected in a document, skip it.
 - No session transcripts — show what changes, not conversation replay.
@@ -46,7 +48,9 @@ Wraps up the current session by syncing important decisions and findings into th
 
 Route each finding to its target document. Only the active goal's documents are routing targets — see Constraints. Recap applies the updates itself in Phase 3 (diff, then apply) — it never invokes another command's procedure.
 
-- (working context changes: principles, workflow, resources) => CONTEXT.md
+- (working context changes: principles, workflow, resources) => CONTEXT.md, as a pointer — when to read a resource and where it is
+- (detail only useful after opening a resource, a bullet below routes it) => that document, never CONTEXT.md
+- (detail only useful after opening a resource, no bullet below routes it) => report it to the user — recap writes living documents only
 - (implementation decisions, design changes) => DESIGN.md
 - (project-level understanding: architecture, stack, strategy) => OVERVIEW.md
 - (a routed target — CONTEXT.md, DESIGN.md, OVERVIEW.md, or GOAL.md — does not exist) => skip that routing entirely; a document the project never created is one it has not needed, so there is nothing to sync. This includes one altitude of a dual-altitude finding — the existing altitude's target still writes. Do not create the absent document and do not suggest creating it — Phase 3's report already lists only the documents actually updated. This rule precedes every routing bullet in this Phase, Constraints' project-scoped note included.
@@ -64,6 +68,7 @@ Route each finding to its target document. Only the active goal's documents are 
    ### CONTEXT.md
    - Add: new workflow step for ...
    - Update: resource path changed to ...
+   - Trim: <entry> → pointer only (detail already in <resource>)
 
    ### DESIGN.md
    - Add: decision to use X instead of Y ...

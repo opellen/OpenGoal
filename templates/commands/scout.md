@@ -9,11 +9,14 @@ tags: [workflow, opengoal, scout]
 
 ## Constraints
 
-- (command entry, and again on the first turn after a compaction) => load the `opengoal-flow` skill BEFORE reporting status, and say so in one line. A reference is not a load: its rules (checkpoint triggers, documentation timing, CONTEXT.md self-sync, self-verification) only bind once the skill's content is actually in context.
+- (command entry, `opengoal-flow`'s own text not visible in your current context) => load the `opengoal-flow` skill BEFORE reporting status, and say so in one line — its rules (checkpoint triggers, documentation timing, CONTEXT.md self-sync, self-verification) bind only while that text is in context.
+- (command entry, `opengoal-flow`'s own text visible) => do not re-read it.
+- Visible means the skill's text itself, as read or injected — remembering its rules, or a summary that mentions them, is not visible.
 <!-- @if subagent -->
 - **Delegate** exploration tasks (e.g., file discovery, keyword search, tracing) to **subagents** — analysis and judgment stay with main. Direct implementation work is limited to one-line fixes, except where `opengoal-subagent` designates work main-only (iterative collaboration, 2nd-iteration rework, evolving design).
 - Report subagent results to the user.
-- (first subagent dispatch of the session, or first dispatch after a compaction) => load the `opengoal-subagent` skill BEFORE dispatching and say so in one line (e.g. "opengoal-subagent loaded — dispatching <task> → <model> (<rationale>)"). A dispatch without this load+announcement is a violation: the skill's dispatch rules (model selection/reporting, prompt requirements, post-verify) only bind once its content is actually in context.
+- (subagent dispatch, `opengoal-subagent`'s own text not visible in your current context) => load the `opengoal-subagent` skill BEFORE dispatching and say so in one line (e.g. "opengoal-subagent loaded — dispatching <task> → <model> (<rationale>)") — a dispatch without this load and announcement is a violation, because its dispatch rules (model selection/reporting, prompt requirements, post-verify) bind only while that text is in context.
+- (subagent dispatch, `opengoal-subagent`'s own text visible) => do not re-read it.
 <!-- @else -->
 - Perform analysis and implementation tasks directly.
 - Report results to the user.

@@ -11,7 +11,9 @@ Manages `$DocsDir/GOAL.md`.
 
 ## Constraints
 
-- (command entry, and again on the first turn after a compaction) => load the `opengoal-flow` skill BEFORE writing or moving any document, and say so in one line. A reference is not a load: its rules (self-verification before marking anything done, User Decision Support format) only bind once the skill's content is actually in context.
+- (command entry, `opengoal-flow`'s own text not visible in your current context) => load the `opengoal-flow` skill BEFORE writing or moving any document, and say so in one line — its rules (self-verification before marking anything done, User Decision Support format) bind only while that text is in context.
+- (command entry, `opengoal-flow`'s own text visible) => do not re-read it.
+- Visible means the skill's text itself, as read or injected — remembering its rules, or a summary that mentions them, is not visible.
 - GOAL.md is the single source of truth for the current goal's state.
 - Never overwrite GOAL.md without user confirmation.
 - Preserve existing check states when updating tasks.
@@ -106,7 +108,7 @@ Usage: `/$CommandPrefix:goal breakdown [task-number]`
 
 ### Steps
 
-1. Read `$DocsDir/GOAL.md` and `$DocsDir/DESIGN.md` at once (parallel if supported, sequential otherwise). Skip if already loaded — but re-read if the goal occupying the canonical paths has changed since the last read: a `subgoal` verb, `goal suspend`/`resume`, or `goal archive`'s sub-goal completion all swap the documents at those paths. A file read error means the file does not exist — **do NOT retry failed reads.**
+1. Read `$DocsDir/GOAL.md` and `$DocsDir/DESIGN.md` at once (parallel if supported, sequential otherwise). Skip a file whose text is visible in your current context — but re-read if the goal occupying the canonical paths has changed since the last read: a `subgoal` verb, `goal suspend`/`resume`, or `goal archive`'s sub-goal completion all swap the documents at those paths. A file read error means the file does not exist — **do NOT retry failed reads.**
 2. Identify target tasks based on targeting rules above.
 3. Derive sub-tasks:
    - If DESIGN.md was found and has an Execution Order section, use it as a reference for deriving sub-tasks.
@@ -137,7 +139,7 @@ Saves a progress snapshot to `$DocsDir/CHECKPOINT.md`.
 Single file, overwritten each time — the AI only needs the latest state to resume.
 Prevents loss of mid-goal progress when context is compacted.
 
-1. Read `$DocsDir/GOAL.md` and `$DocsDir/PLAN.md` at once (parallel if supported, sequential otherwise). Skip if already loaded — but re-read if the goal occupying the canonical paths has changed since the last read: a `subgoal` verb, `goal suspend`/`resume`, or `goal archive`'s sub-goal completion all swap the documents at those paths. A file read error means the file does not exist — **do NOT retry failed reads.**
+1. Read `$DocsDir/GOAL.md` and `$DocsDir/PLAN.md` at once (parallel if supported, sequential otherwise). Skip a file whose text is visible in your current context — but re-read if the goal occupying the canonical paths has changed since the last read: a `subgoal` verb, `goal suspend`/`resume`, or `goal archive`'s sub-goal completion all swap the documents at those paths. A file read error means the file does not exist — **do NOT retry failed reads.**
 2. Requires GOAL.md front-matter `id`.
 3. If `$ARGUMENTS` has content, incorporate it.
 4. Write based on the current session:

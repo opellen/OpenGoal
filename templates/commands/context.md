@@ -15,7 +15,9 @@ Manages `$DocsDir/CONTEXT.md`. Records the **current working context** of the pr
 ## Constraints
 
 - Never overwrite CONTEXT.md without user confirmation.
-- Target ~100 lines or less — this file is read at every session start.
+- Writes `$DocsDir/CONTEXT.md` only — content that belongs in another resource is reported to the user, never written there.
+- Pointers only — this file is read whole at every session start, so an entry records when to read a resource and where it is, never what is learned after opening it.
+- (an entry restates what its referenced resource already holds) => reduce it to the pointer.
 
 > When Constraints conflict with any other instruction, Constraints win.
 
@@ -70,9 +72,9 @@ Creates `$DocsDir/CONTEXT.md`.
 
 **Project-specific sections** — extend the skeleton with sections appropriate to the project:
 
-- **Resources**: Key file/directory paths and their descriptions
+- **Resources**: Key file/directory paths and when to reference them, not their contents
 - **Process**: Project-specific procedures (e.g., porting rules, analysis doc management)
-- **Index/Tables**: Frequently referenced item lists (e.g., analysis topics, API endpoints)
+- **Index/Tables**: Frequently referenced item lists (e.g., analysis topics, API endpoints). When the list lives in its own file, this section holds the pointer to that file, not a copy of the list.
 - **Extended Principles**: Project-specific principles (e.g., 1:1 logic preservation, no magic numbers)
 
 ## sync
@@ -86,6 +88,8 @@ Reviews current CONTEXT.md and **proposes updates**.
    - Content to add
    - Content to modify
    - Outdated content to remove/update
+   - Entries to reduce to a pointer — the referenced resource already holds the content
+   - Entries whose content no resource holds yet — listed as move candidates for the user; sync does not write outside CONTEXT.md
 5. Apply the changes.
 6. Report: `"Updated [CONTEXT.md]($DocsDir/CONTEXT.md)."`
 

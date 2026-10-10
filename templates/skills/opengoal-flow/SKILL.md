@@ -32,6 +32,8 @@ Execute when any of:
 
 > Destructive operations (overwriting existing files, archive) still follow state-aware prompts — in-context confirmation does not bypass those guards.
 
+- (a recognized command's own instructions are visible in your current context) => execute from them — do not re-read the command file.
+
 ## Documentation Timing
 
 - (implementation plan crystallizes — files, design decisions, execution order) => suggest `/$CommandPrefix:design init`
@@ -73,7 +75,7 @@ When a reactive trigger fires (the user-invoked-procedure exemption skips this �
 1. Confirm `$DocsDir/OVERVIEW.md` exists (existence check only).
 2. If absent, inform the user and proceed without it.
 3. If present, surface the affordance to the user — *do not auto-read*. Example: "Architectural ambiguity detected. `$DocsDir/OVERVIEW.md` is available — load it?"
-4. Read only after explicit user approval, then keep the result in session (skip-if-loaded for subsequent triggers).
+4. Read only after explicit user approval; on a later trigger, use it without re-reading while its text is visible in your current context.
 
 > Bias control: when the trigger condition is uncertain, **default to NOT reading**. The cost of missing one read is small; the cost of always-loading is structural.
 
