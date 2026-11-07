@@ -3,9 +3,13 @@ import {
   getAdapter,
   getAdapters,
   getAllAdapters,
+  detectInstalledPlatforms,
   PLATFORM_IDS,
   type CommandMeta,
 } from "../src/platforms/index.js";
+import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { skillInstallPath } from "../src/skills/generate.js";
 
 const TEST_PREFIX = "tpfx";
@@ -27,9 +31,27 @@ tags: [workflow, opengoal, scout]
 `;
 
 describe("platforms", () => {
+  describe("kimi adapter", () => {
+    const adapter = getAdapter("kimi")!;
+    it("uses matching skill names, paths and invocation with a custom prefix", () => {
+      expect(adapter.commandPath("scout", TEST_PREFIX)).toBe(".kimi-code/skills/tpfx-scout/SKILL.md");
+      expect(adapter.commandRef!("scout", TEST_PREFIX)).toBe("/skill:tpfx-scout");
+      const out = adapter.formatCommand(sampleContent, meta, TEST_PREFIX);
+      expect(out).toContain("name: tpfx-scout\n");
+      expect(out).toContain("description: Project scout (project-name)\n");
+      expect(out).toContain("# Scout content here");
+      expect(out).not.toContain("category:");
+      expect(adapter.companionFiles).toBeUndefined();
+    });
+    it("escapes descriptions using YAML frontmatter", () => {
+      const out = adapter.formatCommand("Body", { name: "go", description: 'Run: "go"' }, "acme");
+      expect(out).toContain('description: "Run: \\"go\\""');
+      expect(out).toMatch(/---\nBody$/);
+    });
+  });
   describe("registry", () => {
-    it("PLATFORM_IDS contains all 24 platforms", () => {
-      expect(PLATFORM_IDS).toHaveLength(24);
+    it("PLATFORM_IDS contains all 25 platforms", () => {
+      expect(PLATFORM_IDS).toHaveLength(25);
     });
 
     it("getAdapter returns undefined for unknown id", () => {
@@ -41,7 +63,7 @@ describe("platforms", () => {
     });
 
     it("getAllAdapters returns all adapters", () => {
-      expect(getAllAdapters()).toHaveLength(24);
+      expect(getAllAdapters()).toHaveLength(25);
     });
   });
 
@@ -177,13 +199,62 @@ describe("platforms", () => {
 
   describe("antigravity adapter", () => {
     const adapter = getAdapter("antigravity")!;
-    it("commandPath uses .agent/workflows/", () => {
-      expect(adapter.commandPath("scout", TEST_PREFIX)).toBe(".agent/workflows/tpfx-scout.md");
+    it("commandPath uses .agents/skills/<prefix>-<name>/SKILL.md", () => {
+      expect(adapter.configDir).toBe(".agents");
+      expect(adapter.commandPath("scout", TEST_PREFIX)).toBe(".agents/skills/tpfx-scout/SKILL.md");
     });
-    it("formatCommand emits description only", () => {
+    it("formatCommand emits name + description and strips original front-matter", () => {
       const out = adapter.formatCommand(sampleContent, meta, TEST_PREFIX);
-      expect(out).toContain("description: Project scout (project-name)");
-      expect(out).not.toMatch(/^name:/m);
+      expect(out).toContain("name: tpfx-scout\n");
+      expect(out).toContain("description: Project scout (project-name)\n");
+      expect(out).toContain("# Scout content here");
+      expect(out).not.toContain("category:");
+      expect(out).not.toContain("opengoal:scout");
+    });
+    it("commandRef uses /<prefix>-<name>", () => {
+      expect(adapter.commandRef!("scout", TEST_PREFIX)).toBe("/tpfx-scout");
+    });
+    it("declares the legacy .agent/workflows layout", () => {
+      const legacy = adapter.legacyLayouts!;
+      expect(legacy).toHaveLength(1);
+      expect(legacy[0].configDir).toBe(".agent");
+      expect(legacy[0].commandPath("scout", TEST_PREFIX)).toBe(".agent/workflows/tpfx-scout.md");
+    });
+  });
+
+  describe("detectInstalledPlatforms", () => {
+    it("detects antigravity from a lone legacy .agent/ dir and from .agents/workflows/", () => {
+      const a = mkdtempSync(join(tmpdir(), "opengoal-detect-"));
+      const b = mkdtempSync(join(tmpdir(), "opengoal-detect-"));
+      try {
+        mkdirSync(join(a, ".agent"));
+        mkdirSync(join(b, ".agents", "workflows"), { recursive: true });
+        expect(detectInstalledPlatforms(a)).toContain("antigravity");
+        expect(detectInstalledPlatforms(b)).toContain("antigravity");
+      } finally {
+        rmSync(a, { recursive: true, force: true });
+        rmSync(b, { recursive: true, force: true });
+      }
+    });
+
+    it("does not detect antigravity from the shared .agents/skills/ root alone", () => {
+      const dir = mkdtempSync(join(tmpdir(), "opengoal-detect-"));
+      try {
+        mkdirSync(join(dir, ".agents", "skills", "opengoal-flow"), { recursive: true });
+        expect(detectInstalledPlatforms(dir)).not.toContain("antigravity");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it("keeps configDir-based detection for adapters without detectDirs", () => {
+      const dir = mkdtempSync(join(tmpdir(), "opengoal-detect-"));
+      try {
+        mkdirSync(join(dir, ".kimi-code"));
+        expect(detectInstalledPlatforms(dir)).toEqual(["kimi"]);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
     });
   });
 

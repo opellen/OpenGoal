@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { install, dryRun, detectStale, removeStale, type PromptFn } from "../src/installer.js";
 import type { OpenGoalConfig } from "../src/templates.js";
@@ -338,6 +338,47 @@ describe("installer", () => {
       const config = makeConfig({ prefix: "opgl" });
       const stale = detectStale(config, ["opgl", "scaff"]);
       expect(stale.every((e) => !e.dst.includes("/opgl/"))).toBe(true);
+    });
+
+    describe("antigravity legacy layout", () => {
+      function seed(rel: string) {
+        const p = join(tempDir, rel);
+        mkdirSync(dirname(p), { recursive: true });
+        writeFileSync(p, "legacy", "utf-8");
+      }
+      const legacyFiles = [
+        ".agent/workflows/opgl-go.md",
+        ".agent/workflows/scaff-go.md",
+        ".agent/skills/opengoal-flow/SKILL.md",
+      ];
+
+      it("detects exact legacy paths for current and old prefixes", () => {
+        legacyFiles.forEach(seed);
+        const stale = detectStale(makeConfig({ tools: ["antigravity"] }), ["scaff"]);
+        expect(stale.map((e) => e.dst).sort()).toEqual([...legacyFiles].sort());
+      });
+
+      it("removeStale --force deletes them, prunes empty dirs, keeps .agent/ and unrelated files", async () => {
+        legacyFiles.forEach(seed);
+        seed(".agent/workflows/other-tool.md");
+        const config = makeConfig({ tools: ["antigravity"], force: true });
+        const { removed } = await removeStale(config, detectStale(config, ["scaff"]));
+        expect(removed).toHaveLength(3);
+        expect(existsSync(join(tempDir, ".agent/workflows/opgl-go.md"))).toBe(false);
+        expect(existsSync(join(tempDir, ".agent/skills"))).toBe(false);
+        expect(existsSync(join(tempDir, ".agent/workflows/other-tool.md"))).toBe(true);
+
+        rmSync(join(tempDir, ".agent/workflows/other-tool.md"));
+        seed(".agent/workflows/opgl-go.md");
+        await removeStale(config, detectStale(config, []));
+        expect(existsSync(join(tempDir, ".agent"))).toBe(true);
+        expect(existsSync(join(tempDir, ".agent/workflows"))).toBe(false);
+      });
+
+      it("ignores legacy files when antigravity is not selected", () => {
+        legacyFiles.forEach(seed);
+        expect(detectStale(makeConfig(), ["scaff"])).toHaveLength(0);
+      });
     });
 
     it("returns nothing to remove when there is no stale install", async () => {

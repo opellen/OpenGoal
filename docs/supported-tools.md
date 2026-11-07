@@ -24,9 +24,10 @@ OpenGoal installs markdown commands into each tool's native format. The content 
 | Gemini CLI | Adapter ready | `.gemini/commands/` |
 | Kilo Code | Adapter ready | `.kilocode/workflows/` |
 | Kiro | Adapter ready | `.kiro/prompts/` |
+| Kimi Code | Adapter ready | `.kimi-code/skills/` |
 | RooCode | Adapter ready | `.roo/commands/` |
 | Trae | Adapter ready | `.trae/commands/` |
-| Antigravity | Adapter ready | `.agent/workflows/` |
+| Antigravity | Adapter ready | `.agents/skills/` |
 | Augment CLI | Adapter ready | `.augment/commands/` |
 | CodeBuddy | Adapter ready | `.codebuddy/commands/` |
 | CoStrict | Adapter ready | `.cospec/openspec/commands/` |
@@ -45,9 +46,21 @@ opengoal init                          # Claude Code (default)
 opengoal init --tools cursor           # Single tool
 opengoal init --tools cursor,windsurf  # Multiple tools
 opengoal init --tools all              # All supported tools
+opengoal init --tools kimi             # Kimi Code skills
+opengoal init --tools antigravity      # Antigravity skills
 ```
 
 Without `--tools`, the interactive prompt lets you select from the list.
+
+For Kimi Code, invoke the installed workflows as `/skill:opgl-scout`,
+`/skill:opgl-goal`, or `/skill:opgl-go`. A custom `--prefix acme` changes
+these names to `/skill:acme-scout`, `/skill:acme-goal`, and `/skill:acme-go`.
+
+For Antigravity, invoke the installed workflows as `/opgl-scout`, `/opgl-goal`,
+or `/opgl-go`. A custom `--prefix acme` changes these to `/acme-scout`,
+`/acme-goal`, and `/acme-go`. Older OpenGoal installs used `.agent/workflows/`
+and `.agent/skills/`; re-installing offers to remove the files OpenGoal wrote
+there (exact paths only, after confirmation, or with `--force`).
 
 ## Something wrong?
 

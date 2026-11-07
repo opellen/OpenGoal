@@ -60,6 +60,42 @@ describe("resolveTemplates", () => {
     expect(dsts).toContain(".trae/skills/opengoal-subagent/SKILL.md");
     expect(dsts.some((d) => d.startsWith(".trae/commands"))).toBe(false);
   });
+
+  it("kimi renders nine workflows and two support skills without companions", () => {
+    const config = { ...baseConfig, tools: ["kimi"], prefix: "acme" };
+    const entries = resolveTemplates(config);
+    expect(entries).toHaveLength(11);
+    expect(entries.filter((e) => e.src.startsWith("commands/"))).toHaveLength(9);
+    expect(entries.filter((e) => e.src.startsWith("skills/"))).toHaveLength(2);
+    expect(entries.every((e) => e.dst.startsWith(".kimi-code/skills/") && e.dst.endsWith("/SKILL.md"))).toBe(true);
+    expect(entries.some((e) => e.generated)).toBe(false);
+    const scout = entries.find((e) => e.dst === ".kimi-code/skills/acme-scout/SKILL.md")!;
+    const rendered = renderFile(scout, config);
+    expect(rendered).toContain("name: acme-scout\n");
+    expect(rendered).toContain("/skill:acme-");
+    expect(rendered).not.toContain("/$CommandPrefix:");
+    expect(rendered).not.toContain("**Delegate** exploration tasks");
+    expect(renderFile(scout, { ...config, subagent: true })).toContain("**Delegate** exploration tasks");
+    const flow = entries.find((e) => e.dst === ".kimi-code/skills/opengoal-flow/SKILL.md")!;
+    expect(renderFile(flow, config)).toContain("/skill:acme-");
+    expect(renderFile(flow, config)).not.toContain("/$CommandPrefix:");
+  });
+
+  it("antigravity renders nine skills and two support skills under .agents/skills", () => {
+    const config = { ...baseConfig, tools: ["antigravity"], prefix: "acme" };
+    const entries = resolveTemplates(config);
+    expect(entries).toHaveLength(11);
+    expect(entries.every((e) => e.dst.startsWith(".agents/skills/") && e.dst.endsWith("/SKILL.md"))).toBe(true);
+    expect(entries.map((e) => e.dst)).toContain(".agents/skills/opengoal-flow/SKILL.md");
+    const scout = entries.find((e) => e.dst === ".agents/skills/acme-scout/SKILL.md")!;
+    const rendered = renderFile(scout, config);
+    expect(rendered).toContain("name: acme-scout\n");
+    expect(rendered).toContain("/acme-");
+    expect(rendered).not.toContain("/acme:");
+    expect(rendered).not.toContain("/$CommandPrefix:");
+    const flow = entries.find((e) => e.dst === ".agents/skills/opengoal-flow/SKILL.md")!;
+    expect(renderFile(flow, config)).not.toContain("/acme:");
+  });
 });
 
 describe("renderFile command references", () => {

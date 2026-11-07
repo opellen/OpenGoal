@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
@@ -47,6 +47,50 @@ describe("CLI E2E", () => {
     expect(output).toContain("--tools");
     expect(output).toContain("--prefix");
     expect(output).toContain("--from-prefix");
+  });
+
+  it("previews Antigravity skill paths and offers legacy .agent cleanup", () => {
+    const output = run("init", "--tools", "antigravity", "--dry-run");
+    expect(output.match(/\.agents\/skills\/opgl-[a-z]+\/SKILL\.md/g)).toHaveLength(9);
+    expect(output.match(/\.agents\/skills\/opengoal-[a-z]+\/SKILL\.md/g)).toHaveLength(2);
+
+    const legacy = join(tempDir, ".agent/workflows/opgl-go.md");
+    mkdirSync(join(tempDir, ".agent/workflows"), { recursive: true });
+    writeFileSync(legacy, "legacy", "utf-8");
+    const out2 = run("init", "--tools", "antigravity", "--dry-run");
+    expect(out2).toContain("previous prefix or install layout");
+    expect(out2).toContain(".agent/workflows/opgl-go.md");
+    run("init", "--tools", "antigravity", "--force");
+    expect(existsSync(legacy)).toBe(false);
+    expect(existsSync(join(tempDir, ".agent"))).toBe(true);
+    expect(existsSync(join(tempDir, ".agents/skills/opgl-go/SKILL.md"))).toBe(true);
+  });
+
+  it("installs Kimi skills and prints its invocation with a custom prefix", () => {
+    const output = run("init", "--tools", "kimi", "--prefix", "acme", "--no-subagent");
+    expect(output).toContain("/skill:acme-scout");
+    const scout = join(tempDir, ".kimi-code/skills/acme-scout/SKILL.md");
+    expect(readFileSync(scout, "utf-8")).toContain("name: acme-scout");
+    expect(existsSync(join(tempDir, ".kimi-code/skills/opengoal-flow/SKILL.md"))).toBe(true);
+    expect(existsSync(join(tempDir, ".kimi-code/commands"))).toBe(false);
+    expect(existsSync(join(tempDir, ".kimi-code/skills/acme-scout/agents/openai.yaml"))).toBe(false);
+  });
+
+  it("labels distinct invocation hints for mixed platforms", () => {
+    const output = run("init", "--tools", "claude,kimi,codex");
+    expect(output).toContain("Claude Code: ");
+    expect(output).toContain("/opgl:scout");
+    expect(output).toContain("Kimi Code: ");
+    expect(output).toContain("/skill:opgl-scout");
+    expect(output).toContain("Codex: ");
+    expect(output).toContain("OpenGoal: Scout");
+  });
+
+  it("previews Kimi skill paths without writing", () => {
+    const output = run("init", "--tools", "kimi", "--dry-run");
+    expect(output).toContain(".kimi-code/skills/opgl-scout/SKILL.md");
+    expect(output).toContain(".kimi-code/skills/opengoal-flow/SKILL.md");
+    expect(existsSync(join(tempDir, ".kimi-code"))).toBe(false);
   });
 
   it("shows help with no arguments", () => {

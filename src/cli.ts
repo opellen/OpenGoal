@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { install, dryRun, detectStale, removeStale } from "./installer.js";
 import { DEFAULT_PREFIX, type OpenGoalConfig } from "./templates.js";
-import { PLATFORM_IDS, DEFAULT_PLATFORM, isValidPlatform, detectInstalledPlatforms } from "./platforms/index.js";
+import { PLATFORM_IDS, DEFAULT_PLATFORM, isValidPlatform, detectInstalledPlatforms, getAdapters } from "./platforms/index.js";
 import { showWelcome } from "./ui/welcome.js";
 import { selectPlatforms } from "./prompts/platform-select.js";
 import { t } from "./i18n/index.js";
@@ -283,7 +283,7 @@ async function main(): Promise<void> {
       console.log(`  ${chalk.green("+")} ${file}`);
     }
     if (stale.length > 0) {
-      console.log("\nStale files from a previous prefix (would be removed):");
+      console.log("\nStale files from a previous prefix or install layout (would be removed):");
       for (const entry of stale) {
         console.log(`  ${chalk.red("-")} ${entry.dst}`);
       }
@@ -309,7 +309,7 @@ async function main(): Promise<void> {
   }
 
   if (stale.length > 0) {
-    console.log("\nStale files from a previous prefix:");
+    console.log("\nStale files from a previous prefix or install layout:");
     for (const entry of stale) {
       console.log(`  ${chalk.yellow("!")} ${entry.dst}`);
     }
@@ -330,7 +330,18 @@ async function main(): Promise<void> {
 
   console.log("\n" + title(t("cli.nextSteps")));
   console.log("  " + chalk.dim("1.") + " " + t("cli.step1"));
-  console.log("  " + chalk.dim("2.") + " " + t("cli.step2").replace("{cmd}", goal(`/${args.prefix}:scout`)));
+  const hints = new Map<string, string[]>();
+  for (const adapter of getAdapters(tools)) {
+    if (adapter.supportsCommands === false) continue;
+    const ref = adapter.commandRef?.("scout", args.prefix) ?? `/${args.prefix}:scout`;
+    const labels = hints.get(ref) ?? [];
+    if (!labels.includes(adapter.displayName)) labels.push(adapter.displayName);
+    hints.set(ref, labels);
+  }
+  for (const [ref, labels] of hints) {
+    const label = tools.length > 1 ? `${labels.join(", ")}: ` : "";
+    console.log("  " + chalk.dim("2.") + " " + label + t("cli.step2").replace("{cmd}", goal(ref)));
+  }
 
   process.exit(0);
 }

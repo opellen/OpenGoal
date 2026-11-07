@@ -46,6 +46,23 @@ export interface PlatformAdapter {
    * uninstalled together with the file they accompany.
    */
   companionFiles?(target: CompanionTarget): CompanionFile[];
+  /**
+   * Earlier install layouts of this platform (e.g. a renamed config dir).
+   * Re-installing offers to remove the files opengoal itself wrote there,
+   * found by exact path (never a glob). `configDir` is the root that emptied
+   * directories are pruned up to; the root itself is never removed.
+   */
+  legacyLayouts?: Array<{
+    configDir: string;
+    commandPath(name: string, prefix: string): string;
+  }>;
+  /**
+   * Directories whose presence means this platform is in use, for
+   * auto-detection. Defaults to `configDir` plus every legacy `configDir`.
+   * Set it when `configDir` is a root other tools share (e.g. `.agents/`),
+   * so that root alone does not count as detection.
+   */
+  detectDirs?: string[];
 }
 
 export const DEFAULT_PLATFORM = "claude";

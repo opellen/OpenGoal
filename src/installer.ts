@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync, unlinkSync, readdirSync, rmdirSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { join, dirname, resolve, sep } from "node:path";
+import { getAdapters } from "./platforms/index.js";
 import { resolveTemplates, renderFile, type OpenGoalConfig, type TemplateEntry } from "./templates.js";
 
 export interface InstallResult {
@@ -98,6 +99,12 @@ export function dryRun(config: OpenGoalConfig): { files: string[] } {
  * eligible. Skill entries are excluded (rule: skills don't carry the
  * prefix, so they can never go stale), and the current prefix is never
  * considered stale even if passed in explicitly.
+ *
+ * Adapters that declare legacyLayouts (an earlier config dir / command
+ * layout) additionally contribute the exact files opengoal wrote there, for
+ * the current prefix and every old prefix, plus the shared skills (once).
+ * Such entries carry an adapter view whose configDir is the legacy root, so
+ * removeStale() prunes emptied directories up to that root.
  */
 export function detectStale(
   config: OpenGoalConfig,
@@ -119,7 +126,46 @@ export function detectStale(
     }
   }
 
+  stale.push(...detectLegacyLayoutFiles(config, oldPrefixes, seen));
+
   return stale;
+}
+
+function detectLegacyLayoutFiles(
+  config: OpenGoalConfig,
+  oldPrefixes: string[],
+  seen: Set<string>,
+): TemplateEntry[] {
+  const found: TemplateEntry[] = [];
+  const current = new Set(resolveTemplates(config).map((e) => e.dst));
+  const prefixes = Array.from(new Set([config.prefix, ...oldPrefixes]));
+
+  for (const adapter of getAdapters(config.tools)) {
+    if (!adapter.legacyLayouts) continue;
+    for (const layout of adapter.legacyLayouts) {
+      const view = { ...adapter, configDir: layout.configDir };
+      const consider = (entry: TemplateEntry, dst: string) => {
+        if (current.has(dst) || seen.has(dst)) return;
+        seen.add(dst);
+        if (existsSync(join(config.root, dst))) found.push({ ...entry, dst, adapter: view });
+      };
+      prefixes.forEach((prefix, i) => {
+        const entries = resolveTemplates({ ...config, tools: [adapter.id], prefix });
+        for (const entry of entries) {
+          if (entry.generated) continue;
+          if (entry.src.startsWith("commands/")) {
+            if (adapter.supportsCommands === false) continue;
+            const cmd = entry.src.slice("commands/".length).replace(/\.md$/, "");
+            consider(entry, layout.commandPath(cmd, prefix));
+          } else if (i === 0 && entry.src.startsWith("skills/")) {
+            consider(entry, `${layout.configDir}/skills/${entry.meta.name}/SKILL.md`);
+          }
+        }
+      });
+    }
+  }
+
+  return found;
 }
 
 /**
@@ -170,7 +216,7 @@ export async function removeStale(
     let proceed = config.force === true;
     if (!proceed) {
       const answer = await askUser(
-        `  Found ${stale.length} stale command file(s) from a previous prefix. Remove? [y/N] `,
+        `  Found ${stale.length} stale command file(s) from a previous prefix or install layout. Remove? [y/N] `,
       );
       proceed = answer === "y" || answer === "yes";
     }

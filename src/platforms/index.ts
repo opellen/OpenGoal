@@ -25,6 +25,7 @@ import { qoder } from "./qoder.js";
 import { qwen } from "./qwen.js";
 import { roocode } from "./roocode.js";
 import { trae } from "./trae.js";
+import { kimi } from "./kimi.js";
 
 export type { PlatformAdapter, CommandMeta } from "./types.js";
 export { DEFAULT_PLATFORM } from "./types.js";
@@ -32,7 +33,7 @@ export { DEFAULT_PLATFORM } from "./types.js";
 const ALL_ADAPTERS: PlatformAdapter[] = [
   claude, cursor, windsurf, cline, codex, githubCopilot, continueAdapter,
   amazonQ, antigravity, auggie, codebuddy, costrict, crush, factory,
-  gemini, iflow, kilocode, kiro, opencode, pi, qoder, qwen, roocode, trae,
+  gemini, iflow, kilocode, kiro, kimi, opencode, pi, qoder, qwen, roocode, trae,
 ];
 
 const ADAPTER_MAP = new Map(ALL_ADAPTERS.map((a) => [a.id, a]));
@@ -41,7 +42,7 @@ if (ADAPTER_MAP.size !== ALL_ADAPTERS.length) throw new Error("duplicate adapter
 export const PLATFORM_IDS = [
   "claude", "cursor", "windsurf", "cline", "codex", "github-copilot", "continue",
   "amazon-q", "antigravity", "auggie", "codebuddy", "costrict", "crush", "factory",
-  "gemini", "iflow", "kilocode", "kiro", "opencode", "pi", "qoder", "qwen", "roocode", "trae",
+  "gemini", "iflow", "kilocode", "kiro", "kimi", "opencode", "pi", "qoder", "qwen", "roocode", "trae",
 ] as const;
 if (PLATFORM_IDS.length !== ALL_ADAPTERS.length) throw new Error("PLATFORM_IDS out of sync");
 
@@ -70,7 +71,9 @@ export function getAllAdapters(): PlatformAdapter[] {
 export function detectInstalledPlatforms(projectRoot: string): string[] {
   const detected: string[] = [];
   for (const adapter of ALL_ADAPTERS) {
-    if (existsSync(resolve(projectRoot, adapter.configDir))) {
+    const dirs = adapter.detectDirs ??
+      [adapter.configDir, ...(adapter.legacyLayouts?.map((l) => l.configDir) ?? [])];
+    if (dirs.some((dir) => existsSync(resolve(projectRoot, dir)))) {
       detected.push(adapter.id);
     }
   }
