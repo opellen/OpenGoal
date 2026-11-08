@@ -21,7 +21,7 @@ tags: [workflow, opengoal, scout]
 - Perform analysis and implementation tasks directly.
 - Report results to the user.
 <!-- @endif -->
-- Report status based solely on docs files read during initialization — this includes the `$DocsDir/suspended/*/GOAL.md` front-matter reads in step 2 below and, when a pointer task needs resolving, listing `$DocsDir/archive/goals/` and reading a matching directory's GOAL.md front-matter (the resolver's `parent:` check) — do not read other files proactively.
+- Report status based solely on docs files read during initialization — this includes the `$DocsDir/suspended/*/GOAL.md` front-matter reads in step 2 below, the worktree reads in step 3 (each `.opengoal/worktrees/*/$DocsDir/GOAL.md` and `CHECKPOINT.md`, plus the read-only git queries step 3 names: `worktree list`, `rev-parse`, `status`, `log`, `merge-base`) and, when a pointer task needs resolving, listing `$DocsDir/archive/goals/` and reading a matching directory's GOAL.md front-matter (the resolver's `parent:` check) — do not read other files proactively.
 - Keep suggestions to 1-2 lines — follow the user's direction if they want something different.
 - Skip suggestions if the user starts with a specific task instruction.
 - GOAL.md tasks are always the unit of progress — DESIGN.md is a reference document, not a progress tracker.
@@ -37,8 +37,17 @@ tags: [workflow, opengoal, scout]
    - `$DocsDir/CONTEXT.md`, `$DocsDir/GOAL.md`, `$DocsDir/DESIGN.md`, `$DocsDir/PLAN.md`, `$DocsDir/ROADMAP.md`, `$DocsDir/CHECKPOINT.md`
    - A file read error means the file does not exist — mark it as "not present" and move on. **Do NOT retry failed reads.**
 2. Always check for suspended goals by listing `$DocsDir/suspended/` (this can be a separate call only if needed), and read the front-matter of each `$DocsDir/suspended/*/GOAL.md` — the same read `goal.md`'s `resume` candidate list and `subgoal`'s Lineage Validation already perform. This is what surfaces a parked parent or sibling even while a sub-goal is the active GOAL.md.
-3. If no GOAL.md exists, also read `$DocsDir/BACKLOG.md` (skip this read when a GOAL is active).
-4. Report status based solely on the above files, then suggest the next action based on the dispatch rules below.
+3. Worktree goals — decide first whether this session is inside a worktree (the same test `/$CommandPrefix:goal`'s `### Worktree Detection` uses, restated here so scout needs nothing loaded): `<main-root>` is the first `worktree` line of `git worktree list --porcelain`; this session is inside a worktree when `git rev-parse --show-toplevel` lies under `<main-root>/.opengoal/worktrees/`. State the result in one clause of the status report (`"in worktree <id>"` or `"main checkout"`).
+   - (inside a worktree) => this session owns one goal; report only this worktree's docs and do not enumerate the other worktrees — the main checkout's state is another session's concern. Classify this worktree alone with the list below so Tier 0 can still suggest `land` here
+   - (main checkout, `.opengoal/worktrees/` absent or empty) => nothing to list
+   - (main checkout, worktrees present) => classify each `.opengoal/worktrees/<id>/` with the list below
+   Classification inputs per worktree: `$DocsDir/GOAL.md` front-matter and task checkboxes, the `CHECKPOINT.md` summary if present, `git status --porcelain` there, and `git log <base>..goal/<id> --oneline` (`<base>` from the GOAL.md or archived GOAL.md front-matter; fall back to the main checkout's branch). Evaluate the states in this order and take the first that matches:
+     1. **in progress** — GOAL.md present; report done/total and the checkpoint line
+     2. **merge-ready** — GOAL.md absent, status clean, branch ahead of `<base>`
+     3. **cleanup-pending** — GOAL.md absent, branch already contained in `<base>` (`git merge-base --is-ancestor goal/<id> <base>` succeeds), directory still present
+     4. **stale** — anything else, e.g. uncommitted changes with no GOAL.md
+4. If no GOAL.md exists, also read `$DocsDir/BACKLOG.md` (skip this read when a GOAL is active).
+5. Report status based solely on the above files — worktrees as a **Worktrees** section, one line each with id, state, progress — then suggest the next action based on the dispatch rules below.
    - (the active goal has `parent:`, or a suspended goal's front-matter has `parent:` equal to the active goal's `id`) => report the four kinds `goal.md`'s `subgoal list` uses: **Active scope** (the active goal's `id`, and its `parent:` if present); **Parked sub-goals of this lineage** (children of the active goal, and siblings sharing its `parent:`); **the parent**, shown only when the active goal has `parent:`, together with its return promise — it comes back automatically when this sub-goal completes via `/$CommandPrefix:goal archive`, or immediately via `/$CommandPrefix:goal subgoal pause`; **Unrelated peer goals** (suspended goals outside this lineage).
    - (no active GOAL.md, a suspended goal carries `parent:`) => group the parked sub-goals under their `parent:` alongside the peer goals, so the lineage is visible before `/$CommandPrefix:goal resume` runs.
    - (otherwise) => no lineage grouping; report suspended goals per State Dispatch below, unchanged. This suppresses the four-kind presentation only — it never suppresses the goals themselves.
@@ -47,7 +56,13 @@ tags: [workflow, opengoal, scout]
 
 ## State Dispatch
 
-Three exclusive tiers — no CONTEXT.md and no GOAL.md, CONTEXT.md present without GOAL.md, GOAL.md present. Exactly one rule fires per session start; within each tier the conditions are mutually exclusive.
+Four tiers. Tier 0 is a pre-check on worktrees; Tiers 1–3 are exclusive — no CONTEXT.md and no GOAL.md, CONTEXT.md present without GOAL.md, GOAL.md present. Exactly one suggestion results per session start: a Tier 0 rule, or else one Tier 1–3 rule; within each tier the conditions are mutually exclusive.
+
+Tier 0 — worktrees (from the classification in Session Initialization step 3; when a rule here fires, Tiers 1–3 are skipped):
+
+- (a merge-ready worktree exists — in the listing, or this worktree itself when inside one) => suggest `/$CommandPrefix:goal land <id>`; finished work waiting to merge outranks starting or continuing anything. With several, the suggestion names the first; the Worktrees section already shows the rest
+- (no merge-ready worktree, a cleanup-pending worktree exists) => suggest its cleanup, for confirmation: `git worktree remove .opengoal/worktrees/<id>` and `git branch -d goal/<id>` — the branch is already in `<base>`, so nothing is lost
+- (no Tier 0 rule applies) => Tiers 1–3 decide; in-progress and stale worktrees appear in the Worktrees section but drive no suggestion
 
 Tier 1 — no CONTEXT.md and no GOAL.md (an active GOAL.md without CONTEXT.md is unusual but belongs to Tier 3 — work proceeds, and Documentation Timing may suggest `/$CommandPrefix:context init` later):
 

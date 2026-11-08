@@ -1,6 +1,6 @@
 ---
 name: "opengoal:goal"
-description: "Project goal (GOAL.md) management (init|breakdown|checkpoint|suspend|resume|archive)"
+description: "Project goal (GOAL.md) management (init|breakdown|checkpoint|suspend|resume|archive|land)"
 category: Workflow
 tags: [workflow, opengoal, goal]
 ---
@@ -15,10 +15,12 @@ Manages `$DocsDir/GOAL.md`.
 - (command entry, `opengoal-flow`'s own text visible) => do not re-read it.
 - Visible means the skill's text itself, as read or injected — remembering its rules, or a summary that mentions them, is not visible.
 - GOAL.md is the single source of truth for the current goal's state.
-- Never overwrite GOAL.md without user confirmation.
+- Never overwrite GOAL.md — a second goal while one is active goes through the four options in `### init (active goal present)` (worktree / suspend / archive / cancel); none of them overwrites.
 - Preserve existing check states when updating tasks.
 - Task numbers use hierarchical dot notation: `1.`, `1.1.`, `1.2.1.` — numbers are part of the checklist text, no separate id field.
 - (`subgoal init`, the derived slug matches `$DocsDir/suspended/<slug>/` or the active goal's `id`) => refuse outright and ask for a different description — never offer to overwrite; a dangling `→ subgoal: <slug>` pointer task is not a collision (an interrupted `init` must stay re-runnable), and `$DocsDir/archive/` is deliberately not checked because `archive`'s `-<N>` directory rule makes an archived slug safe to reuse.
+- (`land`, the merge reports a conflict) => abort the merge and report the conflicting files — never edit conflict hunks on your own; which side wins is the user's call.
+- (`archive` or `land` running inside a worktree, per `### Worktree Detection`) => never modify the main checkout's working tree except through `land`'s own `git -C <main-root> merge` and its `--abort` — merge timing across worktrees belongs to the user.
 
 > When Constraints conflict with any other instruction, Constraints win.
 
@@ -27,6 +29,8 @@ Manages `$DocsDir/GOAL.md`.
 `/$CommandPrefix:goal <subcommand> [content]`
 
 `/$CommandPrefix:goal subgoal <verb> [args]` — sub-goal lifecycle (`init` | `pause` | `switch`, or no verb to list).
+
+`/$CommandPrefix:goal land [<id>]` — merge a finished worktree goal into the base branch (runnable from any session).
 
 `/$CommandPrefix:goal <goal description>` — shorthand for `init` with that content.
 
@@ -45,6 +49,7 @@ Manages `$DocsDir/GOAL.md`.
 - (args = subgoal) => see Subcommands: subgoal
 - (args = archive, `$DocsDir/GOAL.md` absent) => stop: "No active GOAL to archive."
 - (args = archive, GOAL.md exists) => see Subcommands: archive
+- (args = land) => see Subcommands: land — it resolves its own target and needs no active GOAL.md
 - (args are free-text goal content — multi-word or quoted, not a subcommand keyword — and `$DocsDir/GOAL.md` has `parent:`) => refuse with the same message as `args = init` — free text runs init
 - (args are free-text goal content — multi-word or quoted, not a subcommand keyword — and no `parent:`) => run init with that content
 - (otherwise) => report unknown subcommand and list available subcommands
@@ -60,8 +65,8 @@ Creates `$DocsDir/GOAL.md`.
 
 1. If `$ARGUMENTS` has content, use it to write the goal.
 2. If empty, derive from the current session discussion.
-3. If GOAL.md already exists, notify the user and confirm overwrite.
-4. Write GOAL.md with the format below.
+3. If GOAL.md already exists, run `### init (active goal present)` below. It either stops (cancel, or the new goal was created in a worktree) or returns here with the canonical slot empty.
+4. Write GOAL.md with the format below. (picked from a `$DocsDir/ROADMAP.md` milestone) => record `milestone: M<N>`; (the description names a code area) => record `scope:`.
 5. Assess task granularity:
    - (tasks are complex, embed multiple implicit steps) => recommend `/$CommandPrefix:goal breakdown` with 1-line rationale
    - (tasks are specific and actionable) => recommend `/$CommandPrefix:design init` (implementation task) or `/$CommandPrefix:go` (analysis task) with 1-line rationale
@@ -77,6 +82,10 @@ id: <goal-slug>
 goal: <one-line summary>
 status: in-progress
 started: YYYY-MM-DD
+milestone: M<N>            # optional — the ROADMAP milestone this goal implements
+scope: [<dir>, <dir>]      # optional — code areas this goal expects to touch
+base: <branch>             # worktree goals only — the branch the worktree was forked from
+worktree: .opengoal/worktrees/<goal-slug>   # worktree goals only
 ---
 ```
 
@@ -91,6 +100,52 @@ Body structure:
 
 - Top-level tasks are numbered `1.`, `2.`, `3.`.
 - Sub-tasks inherit parent number: `1.1.`, `1.2.`, and deeper: `1.2.1.`, `1.2.2.`.
+
+### Worktree Detection
+
+Used by `init`, `archive`, `land`, and `/$CommandPrefix:scout`. Decide once per command run:
+
+- `<main-root>` = the first `worktree` line of `git worktree list --porcelain`.
+- This session is **inside a worktree** when `git rev-parse --show-toplevel` lies under `<main-root>/.opengoal/worktrees/`. GOAL.md's `worktree:` field confirms it but is not required — a goal started by hand in such a directory still counts.
+- Otherwise this session is in the **main checkout**.
+
+### init (active goal present)
+
+`$DocsDir/GOAL.md` exists and carries no `parent:` (a `parent:` is refused by Subcommand Dispatch before reaching here). The user's intent is ambiguous — a parallel goal, a forgotten archive, or a quick switch — so this is a genuine decision fork. Present it in `opengoal-flow`'s User Decision Support form as plain text (never a menu widget), with exactly one recommendation:
+
+```
+Active goal <id> is in progress. Options:
+1. New worktree — keep <id> running; start the new goal in .opengoal/worktrees/<new-id>/ for a separate session.
+2. Suspend <id> and start the new goal here.
+3. Archive <id> and start the new goal here.
+4. Cancel.
+```
+
+Pick the recommendation by the first rule that matches:
+
+- (the active goal has no incomplete tasks) => recommend 3
+- (this session is inside a worktree per `### Worktree Detection`) => omit option 1 from the menu — worktrees are created from the main checkout — and recommend 2
+- (the new goal maps to a ROADMAP milestone, or is clearly multi-session work) => recommend 1
+- (otherwise) => recommend 2
+
+Then:
+
+- (1) => run `#### init in a new worktree` below, and stop — do not continue `init` steps 4–7 here.
+- (2) => perform the `suspend` procedure, replacing its step 5 report with the single line `"Suspended <id> to [$DocsDir/suspended/<id>/]($DocsDir/suspended/<id>/)."`, then continue `init` at step 4.
+- (3) => perform the `archive` procedure, keeping its step 6 report but dropping the closer sentence, then continue `init` at step 4. Inside a worktree this runs `### archive (inside a worktree)` too; the new goal then continues on the same branch, and the worktree is merge-ready again only when that goal archives.
+- (4) => stop: `"Cancelled. Active goal <id> is unchanged."`
+
+#### init in a new worktree
+
+Run from the main checkout. Only the main checkout may create worktrees — (this session is inside a worktree per `### Worktree Detection`) => stop: `"Worktrees are created from the main checkout. Run /$CommandPrefix:goal init there."`
+
+1. Derive `<new-id>` the way `init` derives `id` (kebab-case English slug of the description). (`.opengoal/worktrees/<new-id>/` exists, branch `goal/<new-id>` exists, `$DocsDir/suspended/<new-id>/` exists, or `<new-id>` equals the active goal's `id`) => refuse and ask for a different description.
+2. Preflight: `git status --porcelain -- $DocsDir` on the main checkout must print nothing — a worktree is a checkout of HEAD, so uncommitted docs would be invisible to the new goal. (not clean) => report the files and stop; the user commits first.
+3. Record `<base>` = the branch currently checked out in the main checkout (`git rev-parse --abbrev-ref HEAD`); (`.gitignore` lacks a line covering `.opengoal/`) => append `.opengoal/` to `.gitignore` and say so.
+4. `git worktree add .opengoal/worktrees/<new-id> -b goal/<new-id>`.
+5. In the new worktree, delete the copied goal-owned documents: `$DocsDir/GOAL.md`, `$DocsDir/DESIGN.md`, `$DocsDir/PLAN.md`, `$DocsDir/CHECKPOINT.md` (whichever exist). They belong to the goal still running in the main checkout; `archive`'s worktree closing steps make these deletions merge-neutral.
+6. Write the new goal's GOAL.md at `.opengoal/worktrees/<new-id>/$DocsDir/GOAL.md` using the format above, including `base: <base>` and `worktree: .opengoal/worktrees/<new-id>`, plus `milestone:` / `scope:` per `init` step 4.
+7. Report: `"Created worktree [.opengoal/worktrees/<new-id>/](.opengoal/worktrees/<new-id>/) on branch goal/<new-id> with its GOAL.md. Open a session in that directory and run /$CommandPrefix:scout. The active goal <id> here is unchanged."` No launch command is prescribed — the directory is the contract; any session opened there sees the root install.
 
 ## breakdown
 
@@ -322,6 +377,7 @@ Archives the current GOAL.md and its siblings.
 - (a goal parked under `$DocsDir/suspended/` carries `parent:` equal to this goal's `id`) => refuse: parked sub-goals of this goal remain — offer to finish them, to `/$CommandPrefix:goal subgoal switch <slug>` into one, or to leave the parent open. Never instruct the user to delete anything. This holds whether or not this goal itself has a `parent:`: archiving a middle node would strand its children, whose `parent:` would then name a goal that is live nowhere. (Presenting these options is a genuine decision fork — only the user knows whether the remaining work still matters — not a handoff, per the single-path Constraint's own exception.)
 - (no parked sub-goals of this goal, `$DocsDir/GOAL.md` front-matter has `parent:`, `$DocsDir/suspended/<parent-id>/` exists) => this is a sub-goal completing — see `### archive (sub-goal completion)` below, not the numbered steps
 - (no parked sub-goals of this goal, `parent:` present, `$DocsDir/suspended/<parent-id>/` absent) => archive via `### archive (sub-goal completion)`, report the missing parent, and leave the slot empty — `/$CommandPrefix:goal resume` is the recovery
+- (no parked sub-goals of this goal, no `parent:`, this session is inside a worktree per `### Worktree Detection`) => the numbered steps below, then `### archive (inside a worktree)` — its closer replaces step 6's. A sub-goal completing inside a worktree takes the sub-goal path above instead; the worktree becomes merge-ready only when its top-level goal archives
 - (otherwise) => the numbered steps below, unchanged
 
 Both `parent:` checks read the front-matter of each `$DocsDir/suspended/*/GOAL.md` — the same read `resume`'s grouped candidate list and `subgoal`'s Lineage Validation already perform.
@@ -360,5 +416,54 @@ Reached only from the dispatch above — the steps there are already at the cap,
 - (the pointer task is absent from the resumed parent) => report that and continue — the sub-goal is archived and the parent is active; do not fail.
 - (the run was interrupted after step 1, `$DocsDir/suspended/<parent-id>/` exists — distinct from the missing-parent rule above, whose stop after step 1 is its normal end) => the slot is empty with the pointer unchecked; recover with `/$CommandPrefix:goal resume <parent-id>`, then carry out step 3 against the resumed parent — permitted by `### Pointer Task`'s check-off rule.
 - (the run was interrupted after step 2 — parent active, pointer unchecked) => the pointer now resolves **archived**; complete step 3 directly, or let bare `/$CommandPrefix:goal subgoal` offer it — both permitted by `### Pointer Task`'s check-off rule.
+
+### archive (inside a worktree)
+
+Reached from the dispatch above after `## archive` steps 1–7 ran on this worktree's own copies (ROADMAP tick and BACKLOG sweep included — the merge carries them to the base branch as one-line hunks). This path closes the goal on its branch and leaves the main checkout alone; merging is `land`'s job, because other worktrees may have to land first.
+
+1. Read `<base>` from the archived GOAL.md front-matter (`$DocsDir/archive/goals/YYYY-MM-DD-<id>/GOAL.md`); (absent) => use the main checkout's current branch.
+2. Restore the goal-owned documents to the fork point so this branch carries no change to them. With `<fork>` = `git merge-base <base> HEAD`, handle **each** of `$DocsDir/GOAL.md`, `$DocsDir/DESIGN.md`, `$DocsDir/PLAN.md`, `$DocsDir/CHECKPOINT.md` separately — one combined `git restore` fails entirely if any path was absent at the fork:
+   - (`git cat-file -e <fork>:<path>` succeeds — the file existed at the fork) => `git checkout <fork> -- <path>`
+   - (it did not exist at the fork) => make sure it is absent now (`git rm -q --cached <path>` if tracked, delete the file if present) — absent at both ends is "no change"
+   Result check: `git diff --name-only <fork> -- $DocsDir/GOAL.md $DocsDir/DESIGN.md $DocsDir/PLAN.md $DocsDir/CHECKPOINT.md` must print nothing. (it prints a path) => stop before committing and report `"Restore incomplete: <paths> still differ from the fork point."` — this check is what keeps `land` free of modify/delete conflicts when the main checkout still has a goal of its own.
+3. `git add -A` and commit on `goal/<id>` with message `archive <id>`.
+4. Closer: keep step 6's `"Archived <N> file(s) …"` report, and replace only its closing sentence with `" Committed on goal/<id>. This worktree is ready to merge — /$CommandPrefix:goal land merges it into <base> now."`
+
+## land
+
+Merges a finished worktree goal into its base branch. Runnable from any session — the user should not need to know which window to type it in.
+
+Usage: `/$CommandPrefix:goal land [<id>]`
+
+### Target Resolution
+
+- (this session is inside a worktree per `### Worktree Detection`) => the target is this worktree; an `<id>` argument naming a different one is refused — land that one from the main checkout
+- (main checkout, `<id>` given, `.opengoal/worktrees/<id>/` exists) => that worktree
+- (main checkout, `<id>` given, directory absent) => stop: `"No worktree '<id>'."`
+- (main checkout, no `<id>`, exactly one merge-ready worktree) => select it
+- (main checkout, no `<id>`, several merge-ready) => list them and ask which to land first — merge order is a genuine decision fork; dependencies between goals are known only to the user
+- (main checkout, no `<id>`, none merge-ready) => report the worktree states per `/$CommandPrefix:scout`'s classification and stop
+
+**Merge-ready** means: the worktree's `$DocsDir/GOAL.md` is absent, `git status --porcelain` there prints nothing, and `goal/<id>` is ahead of `<base>` (read `<base>` from the archived GOAL.md in that worktree; fall back to the main checkout's current branch).
+
+### Steps
+
+1. Resolve the target per Target Resolution. (not merge-ready) => stop: `"Worktree <id> is not ready — run /$CommandPrefix:goal archive in it first."`
+2. Busy check on the main checkout. Compute the branch's changed files, `git diff --name-only <base>...goal/<id>`, and the main checkout's dirty files, `git -C <main-root> status --porcelain`.
+   - (a merge is in progress — `<main-root>/.git/MERGE_HEAD` exists) => stop: `"The base branch has a merge in progress. Finish or abort it, then land again."`
+   - (a dirty file in the main checkout is also a changed file on the branch) => stop: `"Uncommitted changes in <main-root> touch files this merge would update: <files>. Commit or stash them there, then land again."` — the worktree stays merge-ready; nothing is lost
+   - (otherwise) => continue. Unrelated uncommitted edits in the main checkout — an active goal's GOAL.md ticks, say — do not block the merge; `archive`'s worktree closing steps already made the goal documents merge-neutral, so they are never on the branch's changed-file list
+3. Confirm `git -C <main-root> rev-parse --abbrev-ref HEAD` is `<base>`. (it is another branch) => stop: `"<main-root> has <branch> checked out, not <base>. Check out <base> there first."` Otherwise `git -C <main-root> merge --no-ff goal/<id>`.
+   - (clean) => continue
+   - (conflict) => `git -C <main-root> merge --abort`, then stop with `"Merge of goal/<id> conflicts in: <files>. Aborted; <base> is unchanged. Resolve by hand or land another worktree first."` Per Constraints, do not resolve hunks yourself.
+4. Cleanup:
+   - (run from the main checkout) => `git worktree remove .opengoal/worktrees/<id>` and `git branch -d goal/<id>`; the step 5 report then ends with `" Worktree and branch removed."`
+   - (run from inside the worktree) => skip — a session cannot remove its own directory. The step 5 report then ends with `" Cleanup of this worktree is offered by the next /$CommandPrefix:scout in the main checkout."`
+5. Report: `"Landed goal <id> into <base> (<N> commits)."` plus the cleanup sentence from step 4, then one closer:
+   - (another merge-ready worktree remains) => `" Next: /$CommandPrefix:goal land <next-id>."`
+   - (peer goals remain under `$DocsDir/suspended/`) => `" Resume a parked goal with /$CommandPrefix:goal resume."`
+   - (otherwise) => `" Set a new goal with /$CommandPrefix:goal init."`
+
+Every git command here is run by the agent under the normal permission flow; nothing assumes the user types git.
 
 > When Constraints conflict with any other instruction, Constraints win.
