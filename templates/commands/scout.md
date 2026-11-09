@@ -41,7 +41,7 @@ tags: [workflow, opengoal, scout]
    - (inside a worktree) => this session owns one goal; report only this worktree's docs and do not enumerate the other worktrees — the main checkout's state is another session's concern. Classify this worktree alone with the list below so Tier 0 can still suggest `land` here
    - (main checkout, `.opengoal/worktrees/` absent or empty) => nothing to list
    - (main checkout, worktrees present) => classify each `.opengoal/worktrees/<id>/` with the list below
-   Classification inputs per worktree: `$DocsDir/GOAL.md` front-matter and task checkboxes, the `CHECKPOINT.md` summary if present, `git status --porcelain` there, and `git log <base>..goal/<id> --oneline` (`<base>` from the GOAL.md or archived GOAL.md front-matter; fall back to the main checkout's branch). Evaluate the states in this order and take the first that matches:
+   Classification inputs per worktree: `$DocsDir/GOAL.md` front-matter and task checkboxes, the `CHECKPOINT.md` summary if present, `git status --porcelain` there, and `git log <base>..<branch> --oneline` (`<base>` and `<branch>` from the GOAL.md or archived GOAL.md front-matter; fall back to the main checkout's branch and `goal/<id>`). Evaluate the states in this order and take the first that matches:
      1. **in progress** — GOAL.md present; report done/total and the checkpoint line
      2. **merge-ready** — GOAL.md absent, status clean, branch ahead of `<base>`
      3. **cleanup-pending** — GOAL.md absent, branch already contained in `<base>` (`git merge-base --is-ancestor goal/<id> <base>` succeeds), directory still present

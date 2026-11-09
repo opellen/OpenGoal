@@ -86,6 +86,7 @@ milestone: M<N>            # optional — the ROADMAP milestone this goal implem
 scope: [<dir>, <dir>]      # optional — code areas this goal expects to touch
 base: <branch>             # worktree goals only — the branch the worktree was forked from
 worktree: .opengoal/worktrees/<goal-slug>   # worktree goals only
+branch: goal/<goal-slug>   # worktree goals only — the worktree's own branch
 ---
 ```
 
@@ -108,6 +109,7 @@ Used by `init`, `archive`, `land`, and `/$CommandPrefix:scout`. Decide once per 
 - `<main-root>` = the first `worktree` line of `git worktree list --porcelain`.
 - This session is **inside a worktree** when `git rev-parse --show-toplevel` lies under `<main-root>/.opengoal/worktrees/`. GOAL.md's `worktree:` field confirms it but is not required — a goal started by hand in such a directory still counts.
 - Otherwise this session is in the **main checkout**.
+- A worktree goal's branch is the `branch:` field of its GOAL.md (archived GOAL.md once archived); when the field is absent, assume `goal/<id>`.
 
 ### init (active goal present)
 
@@ -140,12 +142,14 @@ Then:
 Run from the main checkout. Only the main checkout may create worktrees — (this session is inside a worktree per `### Worktree Detection`) => stop: `"Worktrees are created from the main checkout. Run /$CommandPrefix:goal init there."`
 
 1. Derive `<new-id>` the way `init` derives `id` (kebab-case English slug of the description). (`.opengoal/worktrees/<new-id>/` exists, branch `goal/<new-id>` exists, `$DocsDir/suspended/<new-id>/` exists, or `<new-id>` equals the active goal's `id`) => refuse and ask for a different description.
-2. Preflight: `git status --porcelain -- $DocsDir` on the main checkout must print nothing — a worktree is a checkout of HEAD, so uncommitted docs would be invisible to the new goal. (not clean) => report the files and stop; the user commits first.
+2. Preflight: run `git status --porcelain -- $DocsDir` on the main checkout. (it prints files) => list them and say: `"These uncommitted docs will not be visible in the new worktree until they are committed here and merged in. Continue?"` — a genuine fork, since only the user knows whether the new goal needs them. (continue) => go on; (no) => stop with the active goal unchanged. A worktree is a checkout of HEAD; the new GOAL.md is written fresh, so the gap is limited to shared docs such as CONTEXT.md or ROADMAP.md.
 3. Record `<base>` = the branch currently checked out in the main checkout (`git rev-parse --abbrev-ref HEAD`); (`.gitignore` lacks a line covering `.opengoal/`) => append `.opengoal/` to `.gitignore` and say so.
 4. `git worktree add .opengoal/worktrees/<new-id> -b goal/<new-id>`.
 5. In the new worktree, delete the copied goal-owned documents: `$DocsDir/GOAL.md`, `$DocsDir/DESIGN.md`, `$DocsDir/PLAN.md`, `$DocsDir/CHECKPOINT.md` (whichever exist). They belong to the goal still running in the main checkout; `archive`'s worktree closing steps make these deletions merge-neutral.
-6. Write the new goal's GOAL.md at `.opengoal/worktrees/<new-id>/$DocsDir/GOAL.md` using the format above, including `base: <base>` and `worktree: .opengoal/worktrees/<new-id>`, plus `milestone:` / `scope:` per `init` step 4.
-7. Report: `"Created worktree [.opengoal/worktrees/<new-id>/](.opengoal/worktrees/<new-id>/) on branch goal/<new-id> with its GOAL.md. Open a session in that directory and run /$CommandPrefix:scout. The active goal <id> here is unchanged."` No launch command is prescribed — the directory is the contract; any session opened there sees the root install.
+6. Write the new goal's GOAL.md at `.opengoal/worktrees/<new-id>/$DocsDir/GOAL.md` using the format above, including `base: <base>`, `worktree: .opengoal/worktrees/<new-id>` and `branch: goal/<new-id>`, plus `milestone:` / `scope:` per `init` step 4.
+7. Move this session into the worktree, then report. The user should never have to open another window to reach the goal they just created.
+   - (the platform can move a running session's working directory — Claude Code: the `EnterWorktree` tool with `path` set to the worktree's absolute path (choosing option 1 is the explicit worktree request that tool requires); Codex CLI: `/cd <absolute path>`) => do it. This session is now the goal session; the main checkout and its active goal are untouched. Report: `"Created worktree [.opengoal/worktrees/<new-id>/](.opengoal/worktrees/<new-id>/) on branch goal/<new-id>. This session now works in it — run /$CommandPrefix:scout to continue. Goal <id> in the main checkout is unchanged."`
+   - (the platform cannot move a running session — Gemini CLI has no such command; in Antigravity, prefer its own "New Worktree" conversation mode over this procedure) => Report: `"Created worktree [.opengoal/worktrees/<new-id>/](.opengoal/worktrees/<new-id>/) on branch goal/<new-id> with its GOAL.md. Open a session in that directory and run /$CommandPrefix:scout. Goal <id> here is unchanged."` The directory is the contract; a session opened there sees the root install through ancestor lookup.
 
 ## breakdown
 
@@ -458,7 +462,8 @@ Usage: `/$CommandPrefix:goal land [<id>]`
    - (conflict) => `git -C <main-root> merge --abort`, then stop with `"Merge of goal/<id> conflicts in: <files>. Aborted; <base> is unchanged. Resolve by hand or land another worktree first."` Per Constraints, do not resolve hunks yourself.
 4. Cleanup:
    - (run from the main checkout) => `git worktree remove .opengoal/worktrees/<id>` and `git branch -d goal/<id>`; the step 5 report then ends with `" Worktree and branch removed."`
-   - (run from inside the worktree) => skip — a session cannot remove its own directory. The step 5 report then ends with `" Cleanup of this worktree is offered by the next /$CommandPrefix:scout in the main checkout."`
+   - (run from inside the worktree, the platform can move the session back to the main checkout — Claude Code: `ExitWorktree` with `action: keep`; Codex CLI: `/cd <main-root>`) => leave the worktree first, then remove the worktree and branch exactly as from the main checkout; the step 5 report then ends with `" Worktree and branch removed; this session is back in the main checkout."`
+   - (run from inside the worktree, the platform cannot move the session) => skip — a session cannot remove its own directory. The step 5 report then ends with `" Cleanup of this worktree is offered by the next /$CommandPrefix:scout in the main checkout."`
 5. Report: `"Landed goal <id> into <base> (<N> commits)."` plus the cleanup sentence from step 4, then one closer:
    - (another merge-ready worktree remains) => `" Next: /$CommandPrefix:goal land <next-id>."`
    - (peer goals remain under `$DocsDir/suspended/`) => `" Resume a parked goal with /$CommandPrefix:goal resume."`
