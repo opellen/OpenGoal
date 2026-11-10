@@ -94,6 +94,9 @@ On platforms that inject no warning, the second trigger is the only one — this
 
 When the current goal cannot proceed (discovered bug, missing dependency, blocking issue):
 
+- (blocker identified, this session works inside a goal worktree — its working directory lies under `.opengoal/worktrees/` — and the blocker serves this goal) => suggest `/$CommandPrefix:goal subgoal init "<blocker description>"`; `suspend` and `init` are refused inside a worktree, which holds one goal
+- (blocker identified, inside a goal worktree, the blocker does not serve this goal) => record it, and suggest starting it from the main checkout with `/$CommandPrefix:goal init --worktree "<blocker description>"`
+- The rules below apply to the main checkout only.
 - (blocker identified, active goal has `parent:`, the parent is parked under `$DocsDir/suspended/`) => suggest `/$CommandPrefix:goal subgoal pause` first to return to the parent, then follow the ordinary blocker path there — `/$CommandPrefix:goal suspend` and `/$CommandPrefix:goal init` are both refused while a sub-goal is active
 - (blocker identified, active goal has `parent:`, the parent is missing from `$DocsDir/suspended/`) => `subgoal pause` will refuse too; suggest finishing or archiving the sub-goal (`/$CommandPrefix:goal archive` handles the missing parent and leaves the slot empty), then starting the blocker goal with `/$CommandPrefix:goal init`
 - (blocker identified, current GOAL cannot progress, no `parent:`) => suggest `/$CommandPrefix:goal suspend` followed by `/$CommandPrefix:goal init "<blocker description>"` to address the blocker as its own goal

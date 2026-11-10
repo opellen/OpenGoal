@@ -55,12 +55,22 @@ describe("goal.md worktree sections", () => {
     ".opengoal/worktrees/",
     "goal/<id>",
     "|archive|land)",
+    "/opgl:goal init --worktree",
+    "##### Parking commit",
+    "##### Worktree setup",
+    "Never commit the user's work",
+    "Fork precondition:",
   ])("contains %s", (s) => {
     expect(out).toContain(s);
   });
 
   it("states that land never resolves conflicts", () => {
     expect(out).toMatch(/land[^\n]*(never|not)[^\n]*(resolv|conflict)/i);
+  });
+
+  it("archive inside a worktree neither commits nor restores", () => {
+    const section = out.slice(out.indexOf("### archive (inside a worktree)"), out.indexOf("## land"));
+    expect(section).not.toMatch(/git add|git commit|git restore|git checkout/);
   });
 });
 
@@ -70,6 +80,7 @@ describe("scout.md worktree sections", () => {
   it.each([
     "**in progress**",
     "**merge-ready**",
+    "**archived, awaiting commit**",
     "**cleanup-pending**",
     "**stale**",
     "**Worktrees**",
